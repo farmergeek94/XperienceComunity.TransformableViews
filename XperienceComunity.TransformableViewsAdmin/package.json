@@ -1,0 +1,44 @@
+{
+    "name": "hbs-xperience-transformable-views",
+    "version": "1.0.0",
+    "description": "Inline bootstrap section.",
+    "private": true,
+    "scripts": {
+        "start": "webpack serve --mode development",
+        "build": "webpack --mode=production"
+    },
+    "dependencies": {
+        "@kentico/xperience-admin-base": "28.1.1",
+        "@kentico/xperience-admin-components": "28.1.1",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.23.0",
+        "@babel/plugin-transform-runtime": "^7.22.15",
+        "@babel/preset-env": "^7.22.20",
+        "@babel/preset-react": "^7.22.15",
+        "@babel/preset-typescript": "^7.23.0",
+        "@kentico/xperience-webpack-config": "27.0.3",
+        "@types/babel__core": "~7.20.5",
+        "@types/babel__plugin-transform-runtime": "~7.9.5",
+        "@types/babel__preset-env": "~7.9.7",
+        "@types/react": "^18.0.33",
+        "@types/react-dom": "^18.2.8",
+        "babel-loader": "^9.1.3",
+        "css-loader": "^6.8.1",
+        "style-loader": "^3.3.3",
+        "webpack": "5.89.0",
+        "webpack-cli": "^5.1.4",
+        "webpack-dev-server": "^4.15.1"
+    },
+    "overrides": {
+        "react": "$react",
+        "react-dom": "$react"
+    },
+    "browserslist": [
+        "> .2% and last 3 versions",
+        "not op_mini all",
+        "not IE 11"
+    ]
+}

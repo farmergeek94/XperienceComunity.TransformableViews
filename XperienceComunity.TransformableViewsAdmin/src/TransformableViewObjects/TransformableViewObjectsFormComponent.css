@@ -1,0 +1,36 @@
+﻿.trbv-select-list-item {
+    margin: 7px auto;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid darkgrey;
+    cursor: pointer;
+    transition: all 200ms;
+    align-items: center;
+    border-radius: 3000px;
+    width: 350px;
+    max-width: 100%;
+}
+
+    .trbv-select-list-item:hover, .trbv-select-list-item.selected {
+        background-color: lightgray;
+    }
+
+    .trbv-select-list-item .selected-icon {
+        flex: 1 1 0%;
+        opacity: 0;
+        transition: all 200ms;
+        display:flex;
+        justify-content: flex-end
+    }
+
+    .trbv-select-list-item:hover .selected-icon {
+        opacity: 1;
+    }
+    .trbv-select-list-item.selected .selected-icon {
+        color: green;
+        opacity: 1;
+    }
+.dialog-z-index {
+    z-index: 3001;
+}

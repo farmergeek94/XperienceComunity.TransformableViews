@@ -1,0 +1,30 @@
+﻿@model TemplateViewModel<TransformableViewPageTemplateProperties>
+@{
+    if (Model.Properties.Layout.Any())
+    {
+        Layout = $"TransformableView/{Model.Properties.Layout.First().ObjectCodeName}";
+    }
+}
+@using HBS.Xperience.TransformableViews.PageTemplates
+
+@{
+    var cacheEnabled = !Context.Kentico().Preview().Enabled;
+    try
+    {
+        <cache priority="Microsoft.Extensions.Caching.Memory.CacheItemPriority.High" expires-sliding="@TimeSpan.FromMinutes(30)" vary-by-user="true" enabled="cacheEnabled">
+            <vc:transformable-view-page view="Model.Properties.View"></vc:transformable-view-page>
+            <cache-dependency cache-keys="@CacheService.GetDependenciesList()" enabled="cacheEnabled" />
+        </cache>
+    }
+    catch (Exception ex)
+    {
+        if (Context.Kentico().PageBuilder().EditMode)
+        {
+            <div>@ex.Message</div>
+        }
+        else
+        {
+            <div>There was an error displaying the view</div>
+        }
+    }
+}

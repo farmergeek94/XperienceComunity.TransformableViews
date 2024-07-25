@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <AdminOrgName>hbs</AdminOrgName>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>HBS.Xperience.TransformableViewsShared</Title>
+    <Authors>farmergeek94</Authors>
+    <Company>Heartland Business Systems</Company>
+    <Description>Package allowing you to edit views directly from the Kentico Xperience backend.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Kentico.Xperience.WebApp" Version="29.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.7" />
+  </ItemGroup>
+
+</Project>
