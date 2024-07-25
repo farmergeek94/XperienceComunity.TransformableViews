@@ -8,6 +8,8 @@ namespace HBS.Xperience.TransformableViewsShared.Repositories
     public interface ITransformableViewRepository
     {
         Dictionary<string, DateTime> LastViewedDates { get; set; }
+        bool DeleteViewsOnImport { get; }
+
         ITransformableViewItem? GetTransformableView(string viewName, bool update = false);
         Task<IEnumerable<SelectListItem>> GetTransformableViewObjectSelectItems(string className);
         Task<IEnumerable<SelectListItem>> GetTransformableViewSelectItems();

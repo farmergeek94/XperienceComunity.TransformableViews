@@ -24,6 +24,9 @@ using System.Threading.Tasks;
 [assembly: UIPage(typeof(TransformableViewApplicationPage), "hbs-transformable-view-editor", typeof(TransformableViewPage), "View Editor", TransformableViewPage.TemplateName, 0)]
 namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
 {
+    /// <summary>
+    /// Transformable view admin page
+    /// </summary>
     internal class TransformableViewPage : Page<TransformableViewPageClientProperties>
     {
         public const string TemplateName = "@hbs/xperience-transformable-views/TransformableViewPage"; 
@@ -41,6 +44,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // configure the categories from the taxonomies?
         public override async Task<TransformableViewPageClientProperties> ConfigureTemplateProperties(TransformableViewPageClientProperties properties)
         {
             var provider = TaxonomyInfo.Provider;
@@ -53,6 +57,11 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
             return properties;
         }
 
+        /// <summary>
+        /// Get the views based on category id
+        /// </summary>
+        /// <param name="categoryID"></param>
+        /// <returns></returns>
         [PageCommand]
         public async Task<ICommandResponse> GetViews(int categoryID)
         {
@@ -64,6 +73,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
             return ResponseFrom(views.DeSerializeForm());
         }
 
+        // Save the view
         [PageCommand]
         public async Task<ICommandResponse> SetView(TransformableViewItem model)
         {
@@ -112,6 +122,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
             }
         }
 
+        // Get the classnames available based on type
         [PageCommand]
         public async Task<ICommandResponse> GetClassNames(string requestVal)
         {
@@ -136,6 +147,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
             return ResponseFrom(new { classNames });
         }
 
+        // set views.
         [PageCommand]
         public async Task<ICommandResponse> SetViews(IEnumerable<TransformableViewItem> model)
         {
@@ -165,6 +177,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
             return ResponseFrom(viewList);
         }
 
+        // delete a view
         [PageCommand]
         public async Task<ICommandResponse> DeleteView(int viewID)
         {
@@ -173,6 +186,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
             return ResponseFrom(viewID).AddSuccessMessage("Category Deleted Successfully");
         }
 
+        // Export a view to the filesystem
         [PageCommand]
         public async Task<ICommandResponse> ExportView(int id)
         {
@@ -180,16 +194,17 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
 
             var contentPath = _webHostEnvironment.ContentRootPath;
 
-            var folderPath = CMS.IO.Path.Combine(contentPath, "TransformableViews", view.TransformableViewTypeEnum.ToString());
+            var folderPath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", view.TransformableViewTypeEnum.ToString());
 
             Directory.CreateDirectory(folderPath);
 
+            // save the view.
             var filePath = CMS.IO.Path.Combine(folderPath, view.TransformableViewName + ".cshtml");
             var file = new FileInfo(filePath);
             using var writer = file.CreateText();
             writer.Write(_encryptionService.DecryptString(view.TransformableViewContent));
 
-            var importsFile = new FileInfo(CMS.IO.Path.Combine(contentPath, "TransformableViews", "_ViewImports.cshtml"));
+            var importsFile = new FileInfo(CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", "_ViewImports.cshtml"));
             using var importWriter = importsFile.CreateText();
             importWriter.Write("@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers\r\n@using Kentico.PageBuilder.Web.Mvc\r\n@using Kentico.Web.Mvc");
 
@@ -208,7 +223,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
 
             foreach (var group in groups)
             {
-                var folderPath = CMS.IO.Path.Combine(contentPath, "TransformableViews", group.Key.ToString());
+                var folderPath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", group.Key.ToString());
 
                 Directory.CreateDirectory(folderPath);
 
@@ -221,7 +236,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
                 }
             }
 
-            var importsFile = new FileInfo(CMS.IO.Path.Combine(contentPath, "TransformableViews", "_ViewImports.cshtml"));
+            var importsFile = new FileInfo(CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", "_ViewImports.cshtml"));
             using var importWriter = importsFile.CreateText();
             importWriter.Write("@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers\r\n@using Kentico.PageBuilder.Web.Mvc\r\n@using Kentico.Web.Mvc");
 
@@ -235,7 +250,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
 
             var contentPath = _webHostEnvironment.ContentRootPath;
 
-            var filePath = CMS.IO.Path.Combine(contentPath, "TransformableViews", view.TransformableViewTypeEnum.ToString(), view.TransformableViewName + ".cshtml");
+            var filePath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", view.TransformableViewTypeEnum.ToString(), view.TransformableViewName + ".cshtml");
 
             if (File.Exists(filePath))
             {
@@ -253,10 +268,10 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
                         delete = true;
                     }
                 }
-                if (delete)
+                if (delete && _transformableViewRepository.DeleteViewsOnImport)
                 {
                     file.Delete();
-                    }
+                }
                 tr.Commit();
                 return Response().AddSuccessMessage("View Imported Successfully");
             }
@@ -268,7 +283,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
         {
             var contentPath = _webHostEnvironment.ContentRootPath;
 
-            var folderPath = CMS.IO.Path.Combine(contentPath, "TransformableViews");
+            var folderPath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews");
 
             var files = Directory.EnumerateFiles(folderPath, "*.cshtml", SearchOption.AllDirectories);
 
@@ -293,7 +308,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
                         delete = true;
                     }
                 }
-                if (delete)
+                if (delete && _transformableViewRepository.DeleteViewsOnImport)
                 {
                     file.Delete();
                 }

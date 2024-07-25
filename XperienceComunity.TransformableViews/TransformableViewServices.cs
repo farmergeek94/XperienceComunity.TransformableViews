@@ -13,16 +13,19 @@ namespace HBS.Xperience.TransformableViews
     {
         public static IMvcBuilder UseTransformableViewsProvider(this IMvcBuilder builder)
         {
+            // Add the transformable view file provider
             builder.Services.AddTransient<IFileProvider, TransformableViewFileProvider>(sp => {
                 var provider = ActivatorUtilities.CreateInstance<TransformableViewFileProvider>(sp);
                 return provider;
             });
 
-            //builder.Services.AddTransient<IFileProvider>(sp => {
+            //builder.Services.AddTransient<IFileProvider>(sp =>
+            //{
             //    var host = ActivatorUtilities.GetServiceOrCreateInstance<IWebHostEnvironment>(sp);
             //    return host.WebRootFileProvider;
             //});
 
+            // Add the file provider to the MVC Razor Runtime Compilation
             builder.Services
                 .AddOptions<MvcRazorRuntimeCompilationOptions>()
                 .Configure<IEnumerable<IFileProvider>>((options, providers) =>

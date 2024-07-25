@@ -21,6 +21,9 @@ using System.Threading.Tasks;
 
 namespace HBS.Xperience.TransformableViews.Components
 {
+    /// <summary>
+    /// Widget allowing us to select some specific object type, setup the where, columns, topn and order by and filter accordingly.
+    /// </summary>
     public class TransformableViewObjectsWidgetViewComponent : ViewComponent
     {
         public const string Identifier = "HBS.TransformableViewObjects";
@@ -34,6 +37,7 @@ namespace HBS.Xperience.TransformableViews.Components
         {
             if (!string.IsNullOrWhiteSpace(model.ClassName))
             {
+                // getting the objects based on what was selected for the views. 
                 var items = await _contentItemRetriever.GetObjectItems(model);
 
                 var viewModel = new TransformableViewModel()

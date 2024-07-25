@@ -38,18 +38,33 @@ namespace HBS.Xperience.TransformableViews.Repositories
             _cacheService = cacheService;
         }
 
+        /// <summary>
+        /// Get the class columns based on class name
+        /// </summary>
+        /// <param name="className"></param>
+        /// <returns></returns>
         internal async Task<IEnumerable<string>> GetClassColumnNames(string className)
         {
             var type = await DataClassInfoProvider.ProviderObject.GetAsync(className);
             return await GetClassColumnsNames(type);
         }
 
+        /// <summary>
+        /// Get class columns based on DCI
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         internal async Task<IEnumerable<string>> GetClassColumnsNames(DataClassInfo? type)
         {
             var form = new FormInfo(type.ClassFormDefinition);
             return form.GetColumnNames();
         }
 
+        /// <summary>
+        /// Get the current webpage and all fields.  Return a dynamic.
+        /// </summary>
+        /// <param name="isAuthenticated"></param>
+        /// <returns></returns>
         public async Task<dynamic?> GetWebPage(bool isAuthenticated)
         {
             var page = _contextRetriever.Retrieve().WebPage;
@@ -86,6 +101,12 @@ namespace HBS.Xperience.TransformableViews.Repositories
             return result;
         }
 
+        /// <summary>
+        /// Get the current content items with all the fields 
+        /// </summary>
+        /// <param name="contentType"></param>
+        /// <param name="selectedContent"></param>
+        /// <returns></returns>
         public async Task<ExpandoObject[]> GetContentItems(Guid? contentType, IEnumerable<Guid> selectedContent)
         {
             return await _progressiveCache.LoadAsync(async cs =>
@@ -116,8 +137,15 @@ namespace HBS.Xperience.TransformableViews.Repositories
             }, new CacheSettings(30, true, $"GetContentItems|{contentType}|{string.Join('|', selectedContent)}"));
         }
 
+        /// <summary>
+        /// Get the expando item columns
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="columnNames"></param>
+        /// <returns></returns>
         internal ExpandoObject GetColumnValues(IContentQueryDataContainer map, IEnumerable<string> columnNames)
         {
+            // Add the inital fields known
             var eOb = new ExpandoObject() as IDictionary<string, object?>;
             eOb.Add(nameof(map.ContentItemID), map.ContentItemID);
             eOb.Add(nameof(map.ContentItemContentTypeID), map.ContentItemContentTypeID);
@@ -125,6 +153,7 @@ namespace HBS.Xperience.TransformableViews.Repositories
             eOb.Add(nameof(map.ContentItemCommonDataContentLanguageID), map.ContentItemCommonDataContentLanguageID);
             eOb.Add(nameof(map.ContentItemName), map.ContentItemName);
             eOb.Add(nameof(map.ContentTypeName), map.ContentTypeName);
+            // go through each of the colums and add them
             foreach (var columnName in columnNames)
             {
                 if (eOb.ContainsKey(columnName))
@@ -133,6 +162,7 @@ namespace HBS.Xperience.TransformableViews.Repositories
                 }
                 if (map.TryGetValue(columnName, out dynamic value))
                 {
+                    // if json parse out the column to a dymanic
                     if (value.GetType() == typeof(string) && (value.IndexOf("[") > -1 || value.IndexOf("{") > -1))
                     {
                         try
@@ -152,7 +182,12 @@ namespace HBS.Xperience.TransformableViews.Repositories
             return (ExpandoObject)eOb;
         }
 
-        public async Task<IEnumerable<dynamic>> GetObjectItems(TransformableViewObjectsFormComponentModel model)
+        /// <summary>
+        /// Get the object items.
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public async Task<dynamic[]> GetObjectItems(TransformableViewObjectsFormComponentModel model)
         {
             var query = new ObjectQuery(model.ClassName);
             if (!string.IsNullOrWhiteSpace(model.Columns))
@@ -173,15 +208,17 @@ namespace HBS.Xperience.TransformableViews.Repositories
                 query.TopN(model.TopN.Value);
             }
 
+            // Check if it is a registered item.  If it isn't will have to avoid caching for now.
+            // To Do allow for caching of pages and content items. 
             var type = ObjectTypeManager.RegisteredTypes.Where(x => x.ObjectClassName.ToLower() == model.ClassName.ToLower()).FirstOrDefault();
             if (type == null)
             {
-                return await GetObjectItemsInternal(query);
+                return (await GetObjectItemsInternal(query)).ToArray();
             }
             else
             {
 
-                return await _progressiveCache.LoadAsync(async cs =>
+                return (await _progressiveCache.LoadAsync(async cs =>
                 {
                     var expendables = await GetObjectItemsInternal(query);
                     cs.CacheDependency = _cacheService.GetCacheDependencies(CacheHelper.BuildCacheItemName(new[] { 
@@ -189,10 +226,15 @@ namespace HBS.Xperience.TransformableViews.Repositories
                         "all"
                     }));
                     return expendables;
-                }, new CacheSettings(30, true, "GetObjectItems", query.GetFullQueryText()));
+                }, new CacheSettings(30, true, "GetObjectItems", query.GetFullQueryText()))).ToArray();
             }
         }
 
+        /// <summary>
+        /// Get the objects and parse to expando objects.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
         private async Task<List<dynamic>> GetObjectItemsInternal(ObjectQuery query)
         {
             IEnumerable<IDataContainer> items = await query.GetDataContainerResultAsync(CommandBehavior.Default);
@@ -202,9 +244,12 @@ namespace HBS.Xperience.TransformableViews.Repositories
             foreach (var item in items)
             {
                 var expando = new ExpandoObject() as IDictionary<string, object>;
+                // Loop through each column and 
                 foreach (var column in columns)
                 {
                     dynamic value = item[column];
+
+                    // if json parse out the column to a dymanic
                     if (value.GetType() == typeof(string) && (value.IndexOf("[") > -1 || value.IndexOf("{") > -1))
                     {
                         try

@@ -41,6 +41,9 @@ using System.Threading.Tasks;
 
 namespace HBS.Xperience.TransformableViews.Components
 {
+    /// <summary>
+    /// Widget that allows you to select any content item(s) of a type and match it to a view
+    /// </summary>
     public class TransformableViewContentWidgetViewComponent : ViewComponent
     {
         public const string Identifier = "HBS.TransformableViewWidgets";
@@ -74,6 +77,7 @@ namespace HBS.Xperience.TransformableViews.Components
         }
     }
 
+
     public class TransformableViewContentWidgetProperties : IWidgetProperties
     {
         [ObjectSelectorComponent(DataClassInfo.OBJECT_TYPE, WhereConditionProviderType = typeof(TransformableViewContentTypeWhere), OrderBy = ["ClassDisplayName"], Label = "Content Type", IdentifyObjectByGuid = true)]
@@ -97,16 +101,24 @@ namespace HBS.Xperience.TransformableViews.Components
         public IEnumerable<ObjectRelatedItem> View { get; set; } = [];
     }
 
+    /// <summary>
+    /// Filter that allows us to limit the content type allowed based on another field that has been selected on the form.
+    /// </summary>
     public class TransformableViewContentTypeFilter : IContentTypesFilter
     {
+        /// <summary>
+        /// Get the allowed content type identifier for filtering 
+        /// </summary>
         public IEnumerable<Guid> AllowedContentTypeIdentifiers
         {
             get
             {
+                // Get the http context
                 var httpContextAccessor = Service.ResolveOptional<IHttpContextAccessor>();
-                var form = httpContextAccessor.HttpContext?.Request.Form;
+                var form = httpContextAccessor?.HttpContext?.Request.Form;
                 if (form != null)
                 {
+                    // make sure there is a command
                     if (form.TryGetValue("command", out StringValues command))
                     {
                         // Get the form data passed back to the filter. 
@@ -114,6 +126,7 @@ namespace HBS.Xperience.TransformableViews.Components
                         {
                             try
                             {
+                                // parse the form data down to a readable properties format
                                 var formData = JsonSerializer.Deserialize<TransformableViewContentWidgetPropertiesForm>(data, new JsonSerializerOptions
                                 {
                                     PropertyNameCaseInsensitive = true
@@ -123,7 +136,7 @@ namespace HBS.Xperience.TransformableViews.Components
                                 {
                                     // Get the content type value for filtering.
                                     var contentType = formData?.Form.ContentType.FirstOrDefault();
-
+                                    // return te content type
                                     return contentType != null && contentType.ObjectGuid.HasValue ? [contentType.ObjectGuid.Value] : [];
                                 }
                             }
@@ -147,7 +160,7 @@ namespace HBS.Xperience.TransformableViews.Components
 
     public class TransformableViewWhere : IObjectSelectorWhereConditionProvider
     {
-        // Where Limiting the View type to transformable.
+        // Where Limiting the View type to transformable and also limiting it to specific content types.
         public WhereCondition Get()
         {
             var where = new WhereCondition().WhereEquals(nameof(TransformableViewInfo.TransformableViewType), (int)TransformableViewTypeEnum.Transformable);
@@ -195,6 +208,9 @@ namespace HBS.Xperience.TransformableViews.Components
     /// </summary>
     public class TransformableViewContentWidgetPropertiesForm
     {
+        /// <summary>
+        /// The data returned from the http context can come in two different forms.  Grab which ever of those is not null and use it.
+        /// </summary>
         public TransformableViewContentWidgetProperties Form => FormData == null ? FieldValues : FormData;
         public TransformableViewContentWidgetProperties FormData { get; set; }
         public TransformableViewContentWidgetProperties FieldValues { get; set; }

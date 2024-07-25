@@ -20,6 +20,7 @@ using HBS.Xperience.TransformableViews.Repositories;
 
 namespace HBS.Xperience.TransformableViews.Components
 {
+    // Page template component that allows us return a dynamic view.
     public class TransformableViewPageViewComponent : ViewComponent
     {
         private readonly IContentItemRetriever _webPageRetriever;

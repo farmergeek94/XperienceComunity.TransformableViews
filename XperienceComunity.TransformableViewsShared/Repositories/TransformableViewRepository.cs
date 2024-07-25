@@ -18,6 +18,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using XperienceComunity.TransformableViewsShared.Services;
 
 namespace HBS.Xperience.TransformableViewsShared.Repositories
 {
@@ -26,15 +27,18 @@ namespace HBS.Xperience.TransformableViewsShared.Repositories
         private readonly IProgressiveCache _progressiveCache;
         private readonly ITransformableViewInfoProvider _transformableViewInfoProvider;
         private readonly IEncryptionService _encryptionService;
+        private readonly IViewSettingsService _viewSettingsService;
 
-        public TransformableViewRepository(IProgressiveCache progressiveCache, ITransformableViewInfoProvider transformableViewInfoProvider, IEncryptionService encryptionService)
+        public TransformableViewRepository(IProgressiveCache progressiveCache, ITransformableViewInfoProvider transformableViewInfoProvider, IEncryptionService encryptionService, IViewSettingsService viewSettingsService)
         {
             _progressiveCache = progressiveCache;
             _transformableViewInfoProvider = transformableViewInfoProvider;
             _encryptionService = encryptionService;
+            _viewSettingsService = viewSettingsService;
         }
 
         public Dictionary<string, DateTime> LastViewedDates { get; set; } = new Dictionary<string, DateTime>();
+        public bool DeleteViewsOnImport => _viewSettingsService.DeleteViewsOnImport;
 
         public ITransformableViewItem? GetTransformableView(string viewName, bool update = false)
         {

@@ -14,6 +14,9 @@ using Path = System.IO.Path;
 
 namespace Xperience.Community.TransformableViews.Models
 {
+    /// <summary>
+    /// Get a view from the database as a file.
+    /// </summary>
     internal class TransformableViewFile : IFileInfo
     {
         private readonly IServiceProvider _serviceProvider;
@@ -57,20 +60,24 @@ namespace Xperience.Community.TransformableViews.Models
 
         private void GetView(string viewPath)
         {
+            // Add some usings on top of the views
             var usings = @"@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @using Kentico.PageBuilder.Web.Mvc
 @using Kentico.Web.Mvc
 ";
+            // Check if TransformableView
             if (viewPath.IndexOf("TransformableView") > -1 && viewPath.IndexOf("_ViewImports") < 0)
             {
                 var viewName = Path.GetFileName(viewPath).Replace(".cshtml","");
 
                 try
                 {
+                    // Get the view
                     var serviceRepo = _serviceProvider.GetRequiredService<ITransformableViewRepository>();
                     var view = serviceRepo.GetTransformableView(viewName, true);
                     if (view != null)
                     {
+                        // se the properties that will be used later.
                         _viewContent = Encoding.UTF8.GetBytes(usings + view.TransformableViewContent);
                         _lastModified = view.TransformableViewLastModified;
                         _exists = true;
