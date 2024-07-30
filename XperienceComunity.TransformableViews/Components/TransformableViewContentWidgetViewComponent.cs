@@ -31,6 +31,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using XperienceComunity.TransformableViews.Models;
 
 [assembly: RegisterWidget(
     identifier: TransformableViewContentWidgetViewComponent.Identifier,
@@ -127,7 +128,7 @@ namespace HBS.Xperience.TransformableViews.Components
                             try
                             {
                                 // parse the form data down to a readable properties format
-                                var formData = JsonSerializer.Deserialize<TransformableViewContentWidgetPropertiesForm>(data, new JsonSerializerOptions
+                                var formData = JsonSerializer.Deserialize<WidgetPropertiesForm<TransformableViewContentWidgetProperties>>(data, new JsonSerializerOptions
                                 {
                                     PropertyNameCaseInsensitive = true
                                 });
@@ -175,7 +176,7 @@ namespace HBS.Xperience.TransformableViews.Components
                     {
                         try
                         {
-                            var formData = JsonSerializer.Deserialize<TransformableViewContentWidgetPropertiesForm>(data, new JsonSerializerOptions
+                            var formData = JsonSerializer.Deserialize<WidgetPropertiesForm<TransformableViewContentWidgetProperties>>(data, new JsonSerializerOptions
                             {
                                 PropertyNameCaseInsensitive = true
                             });
@@ -201,18 +202,5 @@ namespace HBS.Xperience.TransformableViews.Components
             }
             return where;
         }
-    }
-
-    /// <summary>
-    /// Class wrapper around the FormData field passed back in request.
-    /// </summary>
-    public class TransformableViewContentWidgetPropertiesForm
-    {
-        /// <summary>
-        /// The data returned from the http context can come in two different forms.  Grab which ever of those is not null and use it.
-        /// </summary>
-        public TransformableViewContentWidgetProperties Form => FormData == null ? FieldValues : FormData;
-        public TransformableViewContentWidgetProperties FormData { get; set; }
-        public TransformableViewContentWidgetProperties FieldValues { get; set; }
     }
 }

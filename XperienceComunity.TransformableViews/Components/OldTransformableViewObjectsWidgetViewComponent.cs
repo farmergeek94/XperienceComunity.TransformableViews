@@ -13,10 +13,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 [assembly: RegisterWidget(
-    identifier: TransformableViewObjectsWidgetViewComponent.Identifier,
-    customViewName: "~/Components/_TVObjects.cshtml",
-    name: "Transformable View Objects",
-    propertiesType: typeof(TransformableViewObjectsWidgetProperties),
+    identifier: OldTransformableViewObjectsWidgetViewComponent.Identifier,
+    customViewName: "~/Components/_OldTVObjects.cshtml",
+    name: "(Old) Transformable View Objects",
+    propertiesType: typeof(OldTransformableViewObjectsWidgetProperties),
     IconClass = "icon-layout")]
 
 namespace HBS.Xperience.TransformableViews.Components
@@ -24,12 +24,12 @@ namespace HBS.Xperience.TransformableViews.Components
     /// <summary>
     /// Widget allowing us to select some specific object type, setup the where, columns, topn and order by and filter accordingly.
     /// </summary>
-    public class TransformableViewObjectsWidgetViewComponent : ViewComponent
+    public class OldTransformableViewObjectsWidgetViewComponent : ViewComponent
     {
         public const string Identifier = "HBS.TransformableViewObjects";
         private readonly IContentItemRetriever _contentItemRetriever;
 
-        public TransformableViewObjectsWidgetViewComponent(IContentItemRetriever contentItemRetriever)
+        public OldTransformableViewObjectsWidgetViewComponent(IContentItemRetriever contentItemRetriever)
         {
             _contentItemRetriever = contentItemRetriever;
         }
@@ -54,7 +54,7 @@ namespace HBS.Xperience.TransformableViews.Components
         }
     }
 
-    public class TransformableViewObjectsWidgetProperties : IWidgetProperties
+    public class OldTransformableViewObjectsWidgetProperties : IWidgetProperties
     {
         [TransformableViewObjectsFormComponent]
         public TransformableViewObjectsFormComponentModel Model { get; set; } = new TransformableViewObjectsFormComponentModel();

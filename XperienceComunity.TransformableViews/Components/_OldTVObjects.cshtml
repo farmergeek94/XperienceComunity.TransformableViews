@@ -1,5 +1,5 @@
 ﻿@using HBS.Xperience.TransformableViews.Components
-@model ComponentViewModel<TransformableViewObjectsWidgetProperties>
+@model ComponentViewModel<OldTransformableViewObjectsWidgetProperties>
 
 @{
     try
@@ -7,7 +7,7 @@
         var cacheEnabled = !Context.Kentico().Preview().Enabled;
 
         <cache priority="Microsoft.Extensions.Caching.Memory.CacheItemPriority.High" expires-sliding="@TimeSpan.FromMinutes(30)" vary-by-user="true" enabled="cacheEnabled">
-            <vc:transformable-view-objects-widget model="Model.Properties"></vc:transformable-view-objects-widget>
+            <vc:old-transformable-view-objects-widget model="Model.Properties.Model"></vc:old-transformable-view-objects-widget>
             <cache-dependency cache-keys="@CacheService.GetDependenciesList()" enabled="cacheEnabled" />
         </cache>
     }

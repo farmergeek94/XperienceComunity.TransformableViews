@@ -163,7 +163,7 @@ namespace HBS.Xperience.TransformableViews.Repositories
                 if (map.TryGetValue(columnName, out dynamic value))
                 {
                     // if json parse out the column to a dymanic
-                    if (value.GetType() == typeof(string) && (value.IndexOf("[") > -1 || value.IndexOf("{") > -1))
+                    if (value != null && value.GetType() == typeof(string) && (value.IndexOf("[") > -1 || value.IndexOf("{") > -1))
                     {
                         try
                         {
@@ -250,7 +250,7 @@ namespace HBS.Xperience.TransformableViews.Repositories
                     dynamic value = item[column];
 
                     // if json parse out the column to a dymanic
-                    if (value.GetType() == typeof(string) && (value.IndexOf("[") > -1 || value.IndexOf("{") > -1))
+                    if (value != null && value.GetType() == typeof(string) && (value.IndexOf("[") > -1 || value.IndexOf("{") > -1))
                     {
                         try
                         {
