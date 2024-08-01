@@ -11,6 +11,8 @@
     <Authors>farmergeek94</Authors>
     <Company>Heartland Business Systems</Company>
     <Description>Package allowing you to edit views directly from the Kentico Xperience backend.</Description>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>kxp-transformable</ToolCommandName>
   </PropertyGroup>
 
   <ItemGroup>
