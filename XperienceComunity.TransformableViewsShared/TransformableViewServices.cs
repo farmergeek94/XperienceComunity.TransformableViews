@@ -40,7 +40,6 @@ namespace HBS.Xperience.TransformableViewsShared
             public bool Install { get; set; } = true;
         }
 
-        [Verb("transformable-views-default", false, null, HelpText = "Default Verb")]
         public class TransformableOptionsDefault
         {
         }
