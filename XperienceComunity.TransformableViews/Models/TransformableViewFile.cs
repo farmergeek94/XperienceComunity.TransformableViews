@@ -19,16 +19,16 @@ namespace Xperience.Community.TransformableViews.Models
     /// </summary>
     internal class TransformableViewFile : IFileInfo
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly ITransformableViewRepository _repository;
         private string _viewPath = "";
 
         private byte[] _viewContent = Array.Empty<byte>();
         private DateTimeOffset _lastModified = DateTime.MinValue;
         private bool _exists = false;
 
-        public TransformableViewFile(IServiceProvider serviceProvider, string viewName)
+        public TransformableViewFile(ITransformableViewRepository repository, string viewName)
         {
-            _serviceProvider = serviceProvider;
+            _repository = repository;
             _viewPath = viewName;
             GetView(viewName);
         }
@@ -73,8 +73,7 @@ namespace Xperience.Community.TransformableViews.Models
                 try
                 {
                     // Get the view
-                    var serviceRepo = _serviceProvider.GetRequiredService<ITransformableViewRepository>();
-                    var view = serviceRepo.GetTransformableView(viewName, true);
+                    var view = _repository.GetTransformableView(viewName, true);
                     if (view != null)
                     {
                         // se the properties that will be used later.

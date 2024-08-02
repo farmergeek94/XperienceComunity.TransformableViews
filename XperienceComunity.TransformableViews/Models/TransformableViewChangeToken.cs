@@ -10,12 +10,12 @@ namespace HBS.Xperience.TransformableViews.Models
     /// </summary>
     internal class TransformableViewChangeToken : IChangeToken
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly ITransformableViewRepository _repository;
         private readonly string _filter;
 
-        public TransformableViewChangeToken(IServiceProvider serviceProvider, string filter)
+        public TransformableViewChangeToken(ITransformableViewRepository repository, string filter)
         {
-            _serviceProvider = serviceProvider;
+            _repository = repository;
             _filter = filter;
         }
 
@@ -31,7 +31,6 @@ namespace HBS.Xperience.TransformableViews.Models
                     if (_filter.IndexOf("TransformableView") > -1 && _filter.IndexOf("_ViewImports") < 0)
                     {
                         // get the repo
-                        var _repository = _serviceProvider.GetRequiredService<ITransformableViewRepository>();
 
                         var viewName = Path.GetFileName(_filter).Replace(".cshtml", "");
 

@@ -47,7 +47,7 @@ namespace HBS.Xperience.TransformableViewsShared.Repositories
         {
             var view = _progressiveCache.Load(cs =>
             {                
-                var view = _transformableViewInfoProvider.Get().Where(w => w.WhereEquals(nameof(TransformableViewInfo.TransformableViewName), viewName)).ToArray().FirstOrDefault();
+                var view = _transformableViewInfoProvider.Get(viewName);
 
                 if (cs.Cached)
                 {
