@@ -7,6 +7,7 @@ using HBS.Xperience.TransformableViewsShared.Library;
 using HBS.Xperience.TransformableViewsShared.Models;
 using HBS.Xperience.TransformableViewsShared.Services;
 using Kentico.Xperience.Admin.Base;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System;
 using System.Collections.Generic;
@@ -28,13 +29,15 @@ namespace HBS.Xperience.TransformableViewsShared.Repositories
         private readonly ITransformableViewInfoProvider _transformableViewInfoProvider;
         private readonly IEncryptionService _encryptionService;
         private readonly IViewSettingsService _viewSettingsService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public TransformableViewRepository(IProgressiveCache progressiveCache, ITransformableViewInfoProvider transformableViewInfoProvider, IEncryptionService encryptionService, IViewSettingsService viewSettingsService)
+        public TransformableViewRepository(IProgressiveCache progressiveCache, ITransformableViewInfoProvider transformableViewInfoProvider, IEncryptionService encryptionService, IViewSettingsService viewSettingsService, IWebHostEnvironment webHostEnvironment)
         {
             _progressiveCache = progressiveCache;
             _transformableViewInfoProvider = transformableViewInfoProvider;
             _encryptionService = encryptionService;
             _viewSettingsService = viewSettingsService;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         public Dictionary<string, DateTime> LastViewedDates { get; set; } = new Dictionary<string, DateTime>();
@@ -110,5 +113,118 @@ namespace HBS.Xperience.TransformableViewsShared.Repositories
 
             return views;
         }
+
+
+
+        public async Task<bool> ExportViews(int id = 0)
+        {
+            var views = id == 0 ? await TransformableViews() : [await _transformableViewInfoProvider.GetAsync(id)];
+
+            var groups = views.GroupBy(x => x.TransformableViewTypeEnum);
+
+            var contentPath = _webHostEnvironment.ContentRootPath;
+
+            foreach (var group in groups)
+            {
+                var folderPath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", group.Key.ToString());
+
+                Directory.CreateDirectory(folderPath);
+
+                foreach (var view in group)
+                {
+                    var filePath = CMS.IO.Path.Combine(folderPath, view.TransformableViewName + ".cshtml");
+                    var file = new FileInfo(filePath);
+                    using var writer = file.CreateText();
+                    writer.Write(_encryptionService.DecryptString(view.TransformableViewContent));
+                }
+            }
+
+            var importsFile = new FileInfo(CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", "_ViewImports.cshtml"));
+            using var importWriter = importsFile.CreateText();
+            importWriter.Write("@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers\r\n@using Kentico.PageBuilder.Web.Mvc\r\n@using Kentico.Web.Mvc");
+
+            return true;
+        }
+
+        public async Task<bool> ImportViews(int id = 0)
+        {
+            return id == 0 ? await ImportViewInternal() : await ImportSingleViewInternal(id);
+        }
+
+        public async Task<bool> ImportViewInternal()
+        {
+            var contentPath = _webHostEnvironment.ContentRootPath;
+
+            var folderPath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews");
+
+            var files = Directory.EnumerateFiles(folderPath, "*.cshtml", SearchOption.AllDirectories);
+
+            var views = await TransformableViews();
+
+            var viewsToUpdate = new List<TransformableViewInfo>();
+
+            using var tr = new CMSTransactionScope();
+            foreach (var filePath in files)
+            {
+                var file = new FileInfo(filePath);
+                var viewName = file.Name.Replace(file.Extension, "");
+                var delete = false;
+                using (var reader = file.OpenText())
+                {
+                    var viewText = await reader.ReadToEndAsync();
+                    var view = views.Where(x => x.TransformableViewName == viewName).FirstOrDefault();
+                    if (view != null)
+                    {
+                        view.TransformableViewContent = viewText;
+                        _transformableViewInfoProvider.Set(view);
+                        delete = true;
+                    }
+                }
+                if (delete && DeleteViewsOnImport)
+                {
+                    file.Delete();
+                }
+            }
+            tr.Commit();
+
+            return true;
+        }
+
+        public async Task<bool> ImportSingleViewInternal(int id)
+        {
+            var view = await _transformableViewInfoProvider.GetAsync(id);
+
+            var contentPath = _webHostEnvironment.ContentRootPath;
+
+            var filePath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", view.TransformableViewTypeEnum.ToString(), view.TransformableViewName + ".cshtml");
+
+            if (File.Exists(filePath))
+            {
+                using var tr = new CMSTransactionScope();
+                var file = new FileInfo(filePath);
+                var viewName = file.Name.Replace(file.Extension, "");
+                var delete = false;
+                using (var reader = file.OpenText())
+                {
+                    var viewText = await reader.ReadToEndAsync();
+                    if (view != null)
+                    {
+                        view.TransformableViewContent = viewText;
+                        _transformableViewInfoProvider.Set(view);
+                        delete = true;
+                    }
+                }
+                if (delete && DeleteViewsOnImport)
+                {
+                    file.Delete();
+                }
+                tr.Commit();
+                return true;
+            }
+
+            return false;
+        }
+
+
     }
 }

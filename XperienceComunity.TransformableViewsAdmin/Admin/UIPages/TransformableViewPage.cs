@@ -11,6 +11,7 @@ using HBS.Xperience.TransformableViewsShared.Library;
 using HBS.Xperience.TransformableViewsShared.Models;
 using HBS.Xperience.TransformableViewsShared.Repositories;
 using HBS.Xperience.TransformableViewsShared.Services;
+using XperienceComunity.TransformableViewsShared.Library;
 using Kentico.Xperience.Admin.Base;
 using Kentico.Xperience.Admin.Base.UIPages;
 using Microsoft.AspNetCore.Hosting;
@@ -190,23 +191,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
         [PageCommand]
         public async Task<ICommandResponse> ExportView(int id)
         {
-            var view = await _transformableViewInfoProvider.GetAsync(id);
-
-            var contentPath = _webHostEnvironment.ContentRootPath;
-
-            var folderPath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", view.TransformableViewTypeEnum.ToString());
-
-            Directory.CreateDirectory(folderPath);
-
-            // save the view.
-            var filePath = CMS.IO.Path.Combine(folderPath, view.TransformableViewName + ".cshtml");
-            var file = new FileInfo(filePath);
-            using var writer = file.CreateText();
-            writer.Write(_encryptionService.DecryptString(view.TransformableViewContent));
-
-            var importsFile = new FileInfo(CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", "_ViewImports.cshtml"));
-            using var importWriter = importsFile.CreateText();
-            importWriter.Write("@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers\r\n@using Kentico.PageBuilder.Web.Mvc\r\n@using Kentico.Web.Mvc");
+            _ = await _transformableViewRepository.ExportViews(id);
 
             return Response().AddSuccessMessage("View Exported Successfully");
         }
@@ -215,105 +200,25 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
         [PageCommand]
         public async Task<ICommandResponse> ExportViews()
         {
-            var views = await _transformableViewRepository.TransformableViews();
-
-            var groups = views.GroupBy(x => x.TransformableViewTypeEnum);
-
-            var contentPath = _webHostEnvironment.ContentRootPath;
-
-            foreach (var group in groups)
-            {
-                var folderPath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", group.Key.ToString());
-
-                Directory.CreateDirectory(folderPath);
-
-                foreach(var view in group)
-                {
-                    var filePath = CMS.IO.Path.Combine(folderPath, view.TransformableViewName + ".cshtml");
-                    var file = new FileInfo(filePath);
-                    using var writer = file.CreateText();
-                    writer.Write(_encryptionService.DecryptString(view.TransformableViewContent));
-                }
-            }
-
-            var importsFile = new FileInfo(CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", "_ViewImports.cshtml"));
-            using var importWriter = importsFile.CreateText();
-            importWriter.Write("@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers\r\n@using Kentico.PageBuilder.Web.Mvc\r\n@using Kentico.Web.Mvc");
-
+            _ = await _transformableViewRepository.ExportViews();
             return Response().AddSuccessMessage("Views Exported Successfully");
         }
 
         [PageCommand]
         public async Task<ICommandResponse> ImportView(int id)
         {
-            var view = await _transformableViewInfoProvider.GetAsync(id);
-
-            var contentPath = _webHostEnvironment.ContentRootPath;
-
-            var filePath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", view.TransformableViewTypeEnum.ToString(), view.TransformableViewName + ".cshtml");
-
-            if (File.Exists(filePath))
+            if(await _transformableViewRepository.ImportViews(id))
             {
-                using var tr = new CMSTransactionScope();
-                var file = new FileInfo(filePath);
-                var viewName = file.Name.Replace(file.Extension, "");
-                var delete = false;
-                using (var reader = file.OpenText())
-                {
-                    var viewText = await reader.ReadToEndAsync();
-                    if (view != null)
-                    {
-                        view.TransformableViewContent = viewText;
-                        _transformableViewInfoProvider.Set(view);
-                        delete = true;
-                    }
-                }
-                if (delete && _transformableViewRepository.DeleteViewsOnImport)
-                {
-                    file.Delete();
-                }
-                tr.Commit();
                 return Response().AddSuccessMessage("View Imported Successfully");
             }
+
             return Response().AddErrorMessage("View Not Found on File System");
         }
 
         [PageCommand]
         public async Task<ICommandResponse> ImportViews()
         {
-            var contentPath = _webHostEnvironment.ContentRootPath;
-
-            var folderPath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews");
-
-            var files = Directory.EnumerateFiles(folderPath, "*.cshtml", SearchOption.AllDirectories);
-
-            var views = await _transformableViewRepository.TransformableViews();
-
-            var viewsToUpdate = new List<TransformableViewInfo>();
-
-            using var tr = new CMSTransactionScope();
-            foreach(var filePath in files)
-            {
-                var file = new FileInfo(filePath);
-                var viewName = file.Name.Replace(file.Extension, "");
-                var delete = false;
-                using (var reader = file.OpenText())
-                {
-                    var viewText = await reader.ReadToEndAsync();
-                    var view = views.Where(x => x.TransformableViewName == viewName).FirstOrDefault();
-                    if (view != null)
-                    {
-                        view.TransformableViewContent = viewText;
-                        _transformableViewInfoProvider.Set(view);
-                        delete = true;
-                    }
-                }
-                if (delete && _transformableViewRepository.DeleteViewsOnImport)
-                {
-                    file.Delete();
-                }
-            }
-            tr.Commit();
+            _ = await _transformableViewRepository.ImportViews();
 
             return Response().AddSuccessMessage("Views Imported Successfully");
         }
@@ -327,56 +232,5 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
         public IEnumerable<TransformableViewCategoryItem> Tags { get; set; } = Enumerable.Empty<TransformableViewCategoryItem>();
         // For example
         public IEnumerable<TransformableViewCategoryItem> Taxonomies { get; set; } = Enumerable.Empty<TransformableViewCategoryItem>();
-    }
-
-    public static class TransformableViewPageHelper {
-        public static IEnumerable<TransformableViewItem> DeSerializeForm(this IEnumerable<ITransformableViewItem> items)
-        {
-            foreach (var item in items)
-            {
-                TransformableViewItem nItem = new()
-                {
-                    TransformableViewContent = item.TransformableViewContent,
-                    TransformableViewDisplayName = item.TransformableViewDisplayName,
-                    TransformableViewGuid = item.TransformableViewGuid,
-                    TransformableViewID = item.TransformableViewID,
-                    TransformableViewLastModified = item.TransformableViewLastModified,
-                    TransformableViewName = item.TransformableViewName,
-                    TransformableViewTransformableViewCategoryID = item.TransformableViewTransformableViewTagID,
-                    TransformableViewType = item.TransformableViewType,
-                    TransformableViewClassName = item.TransformableViewClassName
-                };
-                yield return nItem;
-            }
-        }
-        public static IEnumerable<TransformableViewCategoryItem> GetCategories(this IEnumerable<TaxonomyInfo> infos)
-        {
-            foreach (var item in infos)
-            {
-                TransformableViewCategoryItem nItem = new()
-                {
-                    TransformableViewCategoryID = item.TaxonomyID,
-                    TransformableViewCategoryName = item.TaxonomyName,
-                    TransformableViewCategoryTitle = item.TaxonomyTitle
-                };
-                yield return nItem;
-            }
-        }
-        public static IEnumerable<TransformableViewCategoryItem> GetCategories(this IEnumerable<TagInfo> infos)
-        {
-            foreach (var item in infos)
-            {
-                TransformableViewCategoryItem nItem = new()
-                {
-                    TransformableViewCategoryID = item.TagID,
-                    TransformableViewCategoryName = item.TagName,
-                    TransformableViewCategoryTitle = item.TagTitle,
-                    TransformableViewCategoryOrder = item.TagOrder,
-                    TransformableViewCategoryParentID = item.TagParentID,
-                    TransformableViewCategoryRootID = item.TagTaxonomyID
-                };
-                yield return nItem;
-            }
-        }
     }
 }

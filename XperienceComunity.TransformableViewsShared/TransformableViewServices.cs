@@ -28,23 +28,36 @@ namespace HBS.Xperience.TransformableViewsShared
             builder.Services.AddScoped<ICacheService, CacheService>();
             builder.Services.AddSingleton<ITransformableViewRepository, TransformableViewRepository>();
             builder.Services.AddSingleton<IViewSettingsService>(new ViewSettingsService(deleteViewsOnImport));
-            builder.Services.AddSingleton<IInstallTransformableViews,InstallTransformableViews>();
+            builder.Services.AddSingleton<ITransformableViewsCommandLine,TransformableViewsCommandLine>();
             builder.Services.AddTransient<IStartupFilter, TransformableViewsStartupFilter>();
 
             return builder;
         }
 
         [Verb("transformable-views-install", false, null, HelpText = "Installs the transformable module.")]
-        public class TransformableOptions : TransformableOptionsDefault
+        public class TransformableInstall : TransformableOptionsDefault
         {
-            public bool Install { get; set; } = true;
+        }
+
+        [Verb("transformable-views-export", false, null, HelpText = "Export the transformable views.")]
+        public class TransformableExport : TransformableOptionsDefault
+        {
+            [Option("location", Required = false, HelpText = "The absolute or relative path of the target file where the export zip will be placed.")]
+            public string Export { get; set; } = "./TransformableViews_Export.zip";
+        }
+
+        [Verb("transformable-views-import", false, null, HelpText = "Import the transformable views.")]
+        public class TransformableImport : TransformableOptionsDefault
+        {
+            [Option("location", Required = false, HelpText = "The absolute or relative path of the target file where the export zip will be placed.")]
+            public string Import { get; set; } = "./TransformableViews_Export.zip";
         }
 
         public class TransformableOptionsDefault
         {
         }
 
-        public class TransformableViewsStartupFilter(IInstallTransformableViews installTransformableViews) : IStartupFilter
+        public class TransformableViewsStartupFilter(ITransformableViewsCommandLine commandLine) : IStartupFilter
         {
             public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
             {
@@ -52,16 +65,18 @@ namespace HBS.Xperience.TransformableViewsShared
                 {
                     var args = Environment.GetCommandLineArgs().Skip(1);
                     var parser = new Parser(with => with.IgnoreUnknownArguments = true);
-                    var result = parser.ParseArguments<TransformableOptionsDefault, TransformableOptions>(args);
-
-                    var result2 = result.WithParsed(delegate (TransformableOptionsDefault opts)
+                    parser.ParseArguments<TransformableInstall, TransformableExport, TransformableImport>(args)
+                    .WithParsed(delegate (TransformableOptionsDefault opts)
                     {
-                        if (opts is TransformableOptions parsedOpts)
+                        if (opts is TransformableInstall parsedOpts)
                         {
-                            if (parsedOpts.Install)
-                            {
-                                installTransformableViews.Install();
-                            }
+                            commandLine.Install();
+                        } else if(opts is TransformableExport expt)
+                        {
+                            commandLine.CreateJsonLoadFile(expt.Export);
+                        } else if(opts is TransformableImport import)
+                        {
+                            commandLine.ReadJsonLoadFile(import.Import);
                         }
                     });
                     next(builder);

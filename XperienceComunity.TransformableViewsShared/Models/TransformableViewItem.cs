@@ -1,6 +1,4 @@
-﻿using HBS.Xperience.TransformableViewsAdmin.Admin.UIPages;
-
-namespace HBS.Xperience.TransformableViewsAdmin.Admin.Models
+﻿namespace HBS.Xperience.TransformableViewsShared.Models
 {
     public class TransformableViewItem
     {
