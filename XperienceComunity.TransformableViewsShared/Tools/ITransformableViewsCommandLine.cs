@@ -1,9 +1,11 @@
-﻿namespace XperienceComunity.TransformableViewsTool
+﻿using static HBS.Xperience.TransformableViewsShared.TransformableViewServices;
+
+namespace XperienceComunity.TransformableViewsTool
 {
     public interface ITransformableViewsCommandLine
     {
-        void CreateJsonLoadFile(string extractPath);
+        void CreateJsonLoadFile(TransformableExport model);
         void Install();
-        void ReadJsonLoadFile(string importPath);
+        void ReadJsonLoadFile(TransformableImport model);
     }
 }

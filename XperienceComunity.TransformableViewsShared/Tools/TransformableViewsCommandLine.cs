@@ -2,6 +2,7 @@
 using CMS.ContentEngine;
 using CMS.DataEngine;
 using CMS.Modules;
+using CMS.Websites;
 using HBS.TransformableViews;
 using HBS.TransformableViews_Experience;
 using HBS.Xperience.TransformableViewsShared.Models;
@@ -11,10 +12,16 @@ using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using XperienceComunity.TransformableViewsShared.Library;
 using XperienceComunity.TransformableViewsShared.Models;
+using static HBS.Xperience.TransformableViewsShared.TransformableViewServices;
 
 namespace XperienceComunity.TransformableViewsTool
 {
-    internal class TransformableViewsCommandLine(IInfoProvider<ResourceInfo> resourceInfoProvider, ITransformableViewInfoProvider transformableViewInfoProvider, IEncryptionService encryptionService, IInfoProvider<TagInfo> tagInfoProvider, IInfoProvider<TaxonomyInfo> taxonomyInfoProvider) : ITransformableViewsCommandLine
+    internal class TransformableViewsCommandLine(IInfoProvider<ResourceInfo> resourceInfoProvider, 
+        ITransformableViewInfoProvider transformableViewInfoProvider, 
+        IEncryptionService encryptionService, 
+        IInfoProvider<TagInfo> tagInfoProvider, 
+        IInfoProvider<TaxonomyInfo> taxonomyInfoProvider, 
+        IInfoProvider<PageTemplateConfigurationInfo> pageTemplateProvider) : ITransformableViewsCommandLine
     {
         public void Install()
         {
@@ -167,7 +174,7 @@ GO", null, queryType: QueryTypeEnum.SQLQuery);
             Environment.Exit(0);
         }
 
-        public void CreateJsonLoadFile(string extractPath)
+        public void CreateJsonLoadFile(TransformableExport model)
         {
             Console.WriteLine("Beginning export...");
             var tempPath = CMS.IO.Path.Combine(System.IO.Path.GetTempPath(), "TransformableViews_Export");
@@ -210,26 +217,42 @@ GO", null, queryType: QueryTypeEnum.SQLQuery);
                 File.WriteAllText(CMS.IO.Path.Combine(viewsPath, $"{item.Key}.json"), item.Value);
             }
 
-
-            if (File.Exists(extractPath))
+            if (model.PageTemplates)
             {
-                File.Delete(extractPath);
+                var templates = pageTemplateProvider.Get().WhereLike(nameof(PageTemplateConfigurationInfo.PageTemplateConfigurationTemplate), "%HBS.TransformableViewPageTemplate%").GetEnumerableTypedResult().GetTemplateItems();
+                if (templates.Any())
+                {
+                    var templatesPath = CMS.IO.Path.Combine(tempPath, "PageTemplates");
+
+                    Directory.CreateDirectory(templatesPath);
+
+                    foreach (var template in templates)
+                    {
+                        File.WriteAllText(CMS.IO.Path.Combine(templatesPath, $"{template.PageTemplateConfigurationName}.json"), JsonSerializer.Serialize(template));
+                    }
+                }
             }
 
-            System.IO.Compression.ZipFile.CreateFromDirectory(tempPath, extractPath);
 
-            Console.WriteLine($"Exported {viewJson.Count} views to {extractPath}");
+            if (File.Exists(model.Export))
+            {
+                File.Delete(model.Export);
+            }
+
+            System.IO.Compression.ZipFile.CreateFromDirectory(tempPath, model.Export);
+
+            Console.WriteLine($"Exported {viewJson.Count} views to {model.Export}");
 
             Environment.Exit(0);
         }
 
-        public void ReadJsonLoadFile(string importPath)
+        public void ReadJsonLoadFile(TransformableImport model)
         {
             Console.WriteLine("Beginning import...");
 
-            if (!File.Exists(importPath))
+            if (!File.Exists(model.Import))
             {
-                Console.WriteLine($"Import package not found at {importPath}.  Please provide correct path.");
+                Console.WriteLine($"Import package not found at {model.Import}.  Please provide correct path.");
                 Environment.Exit(1);
                 return;
             }
@@ -243,7 +266,7 @@ GO", null, queryType: QueryTypeEnum.SQLQuery);
 
             Directory.CreateDirectory(tempPath);
 
-            System.IO.Compression.ZipFile.ExtractToDirectory(importPath, tempPath);
+            System.IO.Compression.ZipFile.ExtractToDirectory(model.Import, tempPath);
 
             var taxonomies = JsonSerializer.Deserialize<TransformableViewCategoryItemParent[]>(File.ReadAllText(CMS.IO.Path.Combine(tempPath, "taxonomies.json")))?.ToList();
             var tags = JsonSerializer.Deserialize<TransformableViewCategoryItemParent[]>(File.ReadAllText(CMS.IO.Path.Combine(tempPath, "tags.json")))?.ToList();
@@ -290,7 +313,42 @@ GO", null, queryType: QueryTypeEnum.SQLQuery);
 
             UpdateInsertTaxonomies(taxonomies);
 
-            Console.WriteLine($"{transformableViews.Count()} view(s), {tags.Count} tag(s) and {taxonomies.Count} taxonomy(s) were imported from {importPath}.");
+            var pageTemplateCount = 0;
+            if (model.PageTemplates)
+            {
+                var templatesPath = CMS.IO.Path.Combine(tempPath, "PageTemplates");
+
+                if (Directory.Exists(templatesPath))
+                {
+                    var templates = Directory.EnumerateFiles(templatesPath);
+
+                    var templateList = new List<PageTemplateConfigurationItem>();
+
+                    if(templates != null)
+                    {
+                        foreach (var fileName in templates)
+                        {
+                            var fileText = File.ReadAllText(fileName);
+                            if (!string.IsNullOrWhiteSpace(fileText))
+                            {
+                                var item = JsonSerializer.Deserialize<PageTemplateConfigurationItem>(fileText);
+                                if(item != null)
+                                {
+                                    templateList.Add(item);
+                                }
+                            }
+                        }
+                    }
+                    if (templateList.Any())
+                    {
+                        pageTemplateCount = templateList.Count();
+                        UpdateInsertPageTemplates(templateList);
+                    }
+                }
+            }
+            
+
+            Console.WriteLine($"{transformableViews.Count()} view(s), {pageTemplateCount} page template(s), {tags.Count} tag(s) and {taxonomies.Count} taxonomy(s) were imported from {model.Import}.");
 
             Environment.Exit(0);
         }
@@ -374,6 +432,25 @@ GO", null, queryType: QueryTypeEnum.SQLQuery);
                 view.TransformableViewName = viewName;
                 view.TransformableViewContent = viewItem.TransformableViewContent;
                 transformableViewInfoProvider.Set(view);
+            }
+        }
+
+        private void UpdateInsertPageTemplates(IEnumerable<PageTemplateConfigurationItem> templates)
+        {
+            foreach (var templateItem in templates)
+            {
+                var template = pageTemplateProvider.Get().WhereEquals(nameof(PageTemplateConfigurationInfo.PageTemplateConfigurationName), templateItem.PageTemplateConfigurationName).FirstOrDefault();
+                if(template == null)
+                {
+                    template = PageTemplateConfigurationInfo.New();
+                    template.PageTemplateConfigurationName = templateItem.PageTemplateConfigurationName;
+                }
+                template.PageTemplateConfigurationDescription = templateItem.PageTemplateConfigurationDescription;
+                template.PageTemplateConfigurationIcon = templateItem.PageTemplateConfigurationIcon;
+                template.PageTemplateConfigurationTemplate = templateItem.PageTemplateConfigurationTemplate;
+                template.PageTemplateConfigurationWidgets = templateItem.PageTemplateConfigurationWidgets;
+
+                pageTemplateProvider.Set(template);
             }
         }
 

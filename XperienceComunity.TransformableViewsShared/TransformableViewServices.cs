@@ -44,6 +44,9 @@ namespace HBS.Xperience.TransformableViewsShared
         {
             [Option("location", Required = false, HelpText = "The absolute or relative path of the target file where the export zip will be placed.")]
             public string Export { get; set; } = "./TransformableViews_Export.zip";
+
+            [Option("templates", Required = false, Default = true, HelpText = "Include page templates")]
+            public bool PageTemplates { get; set; } = true;
         }
 
         [Verb("transformable-views-import", false, null, HelpText = "Import the transformable views.")]
@@ -51,6 +54,9 @@ namespace HBS.Xperience.TransformableViewsShared
         {
             [Option("location", Required = false, HelpText = "The absolute or relative path of the target file where the export zip will be placed.")]
             public string Import { get; set; } = "./TransformableViews_Export.zip";
+
+            [Option("templates", Required = false, Default = true, HelpText = "Includes page templates")]
+            public bool PageTemplates { get; set; } = true;
         }
 
         public class TransformableOptionsDefault
@@ -73,10 +79,10 @@ namespace HBS.Xperience.TransformableViewsShared
                             commandLine.Install();
                         } else if(opts is TransformableExport expt)
                         {
-                            commandLine.CreateJsonLoadFile(expt.Export);
+                            commandLine.CreateJsonLoadFile(expt);
                         } else if(opts is TransformableImport import)
                         {
-                            commandLine.ReadJsonLoadFile(import.Import);
+                            commandLine.ReadJsonLoadFile(import);
                         }
                     });
                     next(builder);
