@@ -4,8 +4,8 @@ namespace XperienceComunity.TransformableViewsTool
 {
     public interface ITransformableViewsCommandLine
     {
-        void CreateJsonLoadFile(TransformableExport model);
-        void Install();
-        void ReadJsonLoadFile(TransformableImport model);
+        Task CreateJsonLoadFile(TransformableExport model);
+        Task Install();
+        Task ReadJsonLoadFile(TransformableImport model);
     }
 }

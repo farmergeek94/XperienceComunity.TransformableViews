@@ -4,7 +4,6 @@ using CMS.Core;
 using CMS.DataEngine;
 using CMS.Helpers;
 using CMS.Websites.PageBuilder.Internal;
-using HBS.TransformableViews_Experience;
 using HBS.Xperience.TransformableViews.Components;
 using HBS.Xperience.TransformableViews.Repositories;
 using HBS.Xperience.TransformableViewsShared.Library;
@@ -61,7 +60,7 @@ namespace HBS.Xperience.TransformableViews.Components
         }
         public async Task<IViewComponentResult> InvokeAsync(TransformableViewContentWidgetProperties properties)
         {
-            if (properties.ContentType.Any())
+            if (properties.ContentType.Any() && properties.View.Any())
             {
                 var viewModel = new TransformableViewModel()
                 {
@@ -71,8 +70,10 @@ namespace HBS.Xperience.TransformableViews.Components
                     Items = await _webPageRetriever.GetContentItems(properties.ContentType.First().ObjectGuid, properties.SelectedContent.Select(x => x.Identifier))
                 };
 
-                // Return the database view with the model. 
-                return View(properties.View.FirstOrDefault()?.ObjectCodeName, viewModel);
+                var view = await _transformableViewRepository.GetTransformableViews(properties.View.FirstOrDefault()?.Identifier ?? Guid.Empty);
+                if(view != null)
+                    // Return the database view with the model. 
+                    return View($"TransformableView/{view.TransformableDatabaseViewCodeName}", viewModel);
             }
             return Content(string.Empty);
         }
@@ -98,8 +99,8 @@ namespace HBS.Xperience.TransformableViews.Components
         [TextAreaComponent(Label = "View Custom Content")]
         public string ViewCustomContent { get; set; } = string.Empty;
 
-        [ObjectSelectorComponent(TransformableViewInfo.OBJECT_TYPE, WhereConditionProviderType = typeof(TransformableViewWhere), OrderBy = ["TransformableViewDisplayName"], Label = "View")]
-        public IEnumerable<ObjectRelatedItem> View { get; set; } = [];
+        [ContentItemSelectorComponent(TransformableDatabaseClassView.CONTENT_TYPE_NAME, Label = "View", MaximumItems = 1, MinimumItems = 1)]
+        public IEnumerable<ContentItemReference> View { get; set; } = [];
     }
 
     /// <summary>
@@ -157,50 +158,5 @@ namespace HBS.Xperience.TransformableViews.Components
     {
         // Where condition limiting the content type to only reuasble content types
         public WhereCondition Get() => new WhereCondition().WhereEquals(nameof(DataClassInfo.ClassType), "Content").WhereEquals(nameof(DataClassInfo.ClassContentTypeType), "Reusable");
-    }
-
-    public class TransformableViewWhere : IObjectSelectorWhereConditionProvider
-    {
-        // Where Limiting the View type to transformable and also limiting it to specific content types.
-        public WhereCondition Get()
-        {
-            var where = new WhereCondition().WhereEquals(nameof(TransformableViewInfo.TransformableViewType), (int)TransformableViewTypeEnum.Transformable);
-            var httpContextAccessor = Service.ResolveOptional<IHttpContextAccessor>();
-            var form = httpContextAccessor.HttpContext?.Request.Form;
-            if (form != null)
-            {
-                if (form.TryGetValue("command", out StringValues command))
-                {
-                    // Get the form data passed back to the filter. 
-                    if (form.TryGetValue("data", out StringValues data))
-                    {
-                        try
-                        {
-                            var formData = JsonSerializer.Deserialize<WidgetPropertiesForm<TransformableViewContentWidgetProperties>>(data, new JsonSerializerOptions
-                            {
-                                PropertyNameCaseInsensitive = true
-                            });
-
-                            if (formData?.Form != null)
-                            {
-                                // Get the content type value for filtering.
-                                var contentType = formData?.Form.ContentType.FirstOrDefault();
-
-                                var dataClass = DataClassInfoProvider.GetClasses().WhereEquals(nameof(DataClassInfo.ClassGUID), contentType.ObjectGuid.HasValue ? contentType.ObjectGuid.Value : Guid.Empty).FirstOrDefault();
-
-                                if (dataClass != null)
-                                {
-                                    where = where.WhereEquals(nameof(TransformableViewInfo.TransformableViewClassName), dataClass.ClassName);
-                                }
-                            }
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    }
-                }
-            }
-            return where;
-        }
     }
 }

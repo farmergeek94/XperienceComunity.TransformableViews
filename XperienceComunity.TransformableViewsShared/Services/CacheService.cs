@@ -1,5 +1,4 @@
 ﻿using CMS.Helpers;
-using HBS.TransformableViews_Experience;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,12 +9,17 @@ namespace HBS.Xperience.TransformableViewsShared.Services
 {
     internal class CacheService : ICacheService
     {
-        public CacheService() { 
-        }
-        List<string> _keys = new List<string>()
-        {
-            $"{TransformableViewInfo.OBJECT_TYPE}|all"
-        };
+        private List<string> _defaultKeys = [
+            $"{TransformableDatabaseLayoutView.CONTENT_TYPE_NAME}|all",
+            $"{TransformableDatabasePageView.CONTENT_TYPE_NAME}|all",
+            $"{TransformableDatabaseClassView.CONTENT_TYPE_NAME}|all",
+            $"{TransformableDatabaseContentView.CONTENT_TYPE_NAME}|all"
+        ];
+
+        List<string> _keys => [.. _defaultKeys];
+
+        public List<string> GetDefaultKeys() => _defaultKeys;
+
         public ICacheService Add(IEnumerable<string> keys)
         {
             _keys.AddRange(keys);
@@ -30,13 +34,13 @@ namespace HBS.Xperience.TransformableViewsShared.Services
         public CMSCacheDependency GetCacheDependencies(string key)
         {
             _keys.Add(key);
-            return CacheHelper.GetCacheDependency([key, $"{TransformableViewInfo.OBJECT_TYPE}|all"]);
+            return CacheHelper.GetCacheDependency([key, .. _defaultKeys]);
         }
         public CMSCacheDependency GetCacheDependencies(IEnumerable<string> keys)
         {
             _keys.AddRange(keys);
             var list = keys.ToList();
-            list.Add($"{TransformableViewInfo.OBJECT_TYPE}|all");
+            list.AddRange(_defaultKeys);
             return CacheHelper.GetCacheDependency(list.ToArray());
         }
     }

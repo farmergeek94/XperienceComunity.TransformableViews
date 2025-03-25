@@ -1,10 +1,19 @@
 ﻿@model TemplateViewModel<TransformableViewPageTemplateProperties>
+@inject HBS.Xperience.TransformableViewsShared.Repositories.ITransformableViewRepository transformableViewRepository
 @{
+
     if (Model.Properties.Layout.Any())
     {
-        Layout = $"TransformableView/{Model.Properties.Layout.First().ObjectCodeName}";
+        var view = await transformableViewRepository.GetTransformableViews(Model.Properties.Layout.First().Identifier);
+        Layout = $"TransformableView/{view?.TransformableDatabaseViewCodeName}";
     }
 }
+
+@if (Layout == null)
+{
+    <page-builder-styles />
+}
+
 @using HBS.Xperience.TransformableViews.PageTemplates
 
 @{
@@ -27,4 +36,9 @@
             <div>There was an error displaying the view</div>
         }
     }
+}
+
+@if (Layout == null)
+{
+    <page-builder-scripts />
 }

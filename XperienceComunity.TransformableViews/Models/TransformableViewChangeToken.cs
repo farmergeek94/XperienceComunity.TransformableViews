@@ -35,10 +35,10 @@ namespace HBS.Xperience.TransformableViews.Models
                         var viewName = Path.GetFileName(_filter).Replace(".cshtml", "");
 
                         // get the view (cached)
-                        var view = _repository.GetTransformableView(viewName);
-
+                        var view = _repository.GetTransformableViews(viewName);
+                        view.Wait();
                         // run the logic to check and see if the view needs updating
-                        if (view != null)
+                        if (view.Result != null)
                         {
                             var wasRequested = _repository.LastViewedDates.ContainsKey(viewName);
 
@@ -46,7 +46,7 @@ namespace HBS.Xperience.TransformableViews.Models
                             {
                                 return false;
                             }
-                            return view.TransformableViewLastModified > _repository.LastViewedDates[viewName];
+                            return DateTimeOffset.MinValue > _repository.LastViewedDates[viewName];
                         }
                     }
                     return false;

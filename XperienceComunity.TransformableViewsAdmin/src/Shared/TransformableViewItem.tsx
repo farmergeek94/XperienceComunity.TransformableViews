@@ -8,5 +8,5 @@
     transformableViewName?:string
     transformableViewTransformableViewCategoryID: number
     transformableViewType: number
-    transformableViewClassName: string
+    transformableViewClassName?: string
 }

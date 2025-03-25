@@ -22,14 +22,14 @@ namespace HBS.Xperience.TransformableViewsShared
         /// <param name="aesKey">Key to encrypt the views with.  Must be a valid aes key.</param>
         /// <param name="deleteViewsOnImport">Delete views on import.</param>
         /// <returns></returns>
-        public static IMvcBuilder WithTransformableViews(this IMvcBuilder builder, string aesKey, bool deleteViewsOnImport = false)
+        public static IMvcBuilder WithTransformableViews(this IMvcBuilder builder, bool deleteViewsOnImport = false)
         {
-            builder.Services.AddSingleton<IEncryptionService>(new EncryptionService(aesKey));
             builder.Services.AddScoped<ICacheService, CacheService>();
             builder.Services.AddSingleton<ITransformableViewRepository, TransformableViewRepository>();
             builder.Services.AddSingleton<IViewSettingsService>(new ViewSettingsService(deleteViewsOnImport));
             builder.Services.AddSingleton<ITransformableViewsCommandLine,TransformableViewsCommandLine>();
             builder.Services.AddTransient<IStartupFilter, TransformableViewsStartupFilter>();
+            builder.Services.AddSingleton<ITransformableViewService, TransformableViewService>();
 
             return builder;
         }
@@ -74,16 +74,18 @@ namespace HBS.Xperience.TransformableViewsShared
                     parser.ParseArguments<TransformableInstall, TransformableExport, TransformableImport>(args)
                     .WithParsed(delegate (TransformableOptionsDefault opts)
                     {
+                        Task? taskItem = null;
                         if (opts is TransformableInstall parsedOpts)
                         {
-                            commandLine.Install();
+                            taskItem = commandLine.Install();
                         } else if(opts is TransformableExport expt)
                         {
-                            commandLine.CreateJsonLoadFile(expt);
+                            taskItem = commandLine.CreateJsonLoadFile(expt);
                         } else if(opts is TransformableImport import)
                         {
-                            commandLine.ReadJsonLoadFile(import);
+                            taskItem = commandLine.ReadJsonLoadFile(import);
                         }
+                        taskItem?.Wait();
                     });
                     next(builder);
                 };

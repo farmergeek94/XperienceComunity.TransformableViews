@@ -9,5 +9,7 @@ namespace XperienceComunity.TransformableViewsShared.Services
     internal class ViewSettingsService(bool deleteViewsOnImport) : IViewSettingsService
     {
         public bool DeleteViewsOnImport { get; } = deleteViewsOnImport;
+
+        public string WorkSpaceName { get; set; } = "KenticoDefault";
     }
 }

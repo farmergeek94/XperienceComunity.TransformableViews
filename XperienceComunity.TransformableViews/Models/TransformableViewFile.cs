@@ -1,6 +1,5 @@
 ﻿using CMS.Core;
 using CMS.Helpers;
-using HBS.TransformableViews;
 using HBS.Xperience.TransformableViewsShared.Repositories;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,12 +72,13 @@ namespace Xperience.Community.TransformableViews.Models
                 try
                 {
                     // Get the view
-                    var view = _repository.GetTransformableView(viewName, true);
-                    if (view != null)
+                    var view = _repository.GetTransformableViews(viewName, true);
+                    view.Wait();
+                    if (view.Result != null)
                     {
                         // se the properties that will be used later.
-                        _viewContent = Encoding.UTF8.GetBytes(usings + view.TransformableViewContent);
-                        _lastModified = view.TransformableViewLastModified;
+                        _viewContent = Encoding.UTF8.GetBytes(usings + view.Result.TransformableDatabaseViewEditor);
+                        _lastModified = DateTimeOffset.MinValue;
                         _exists = true;
                     }
                 }

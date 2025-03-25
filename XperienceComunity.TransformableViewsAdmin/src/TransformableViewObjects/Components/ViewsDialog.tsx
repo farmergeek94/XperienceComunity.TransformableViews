@@ -1,4 +1,4 @@
-﻿import { Dialog, Icon, Input } from '@kentico/xperience-admin-components'
+﻿import { Button, ButtonColor, Dialog, Icon, Input, SidePanel, SidePanelSize } from '@kentico/xperience-admin-components'
 import React, { useEffect, useMemo, useState } from 'react'
 import { SelectListItem } from '../TransformableViewObjectsFormComponent'
 import { FormComponentProps, useFormComponentCommandProvider } from '@kentico/xperience-admin-base'
@@ -40,7 +40,7 @@ export default ({ value, onSelect, open, closeDialog, props, className }: ViewDi
         closeDialog();
     }
 
-    return <Dialog isOpen={open} headline={"Select Views"} overlayClassName="dialog-z-index" onOverlayClick={(e) => { e.preventDefault(); return false; } } onClose={closeDialog} isDismissable={true} headerCloseButton={{ tooltipText: "Close Dialog" }} confirmAction={{ label: "Okay", onClick: handleConfirm }} cancelAction={{ label: "Cancel", onClick: closeDialog }}>
+    return <SidePanel isVisible={open} size={ SidePanelSize.Stackable } headline={"Select Views"} isOutsideClickCloseable={true} onClose={closeDialog} footer={<div style={{display: 'flex', gap: 10, justifyContent: 'flex-end' }}><Button label="Cancel" color={ButtonColor.Secondary} onClick={closeDialog} /><Button label="Okay" color={ButtonColor.Primary} onClick={handleConfirm} /></div>}>
         <div style={{ paddingBottom: 0 }}>
             <Input placeholder={ "(Filter)" } value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
         </div>
@@ -51,5 +51,5 @@ export default ({ value, onSelect, open, closeDialog, props, className }: ViewDi
                 <span className="selected-icon"><Icon name="xp-check-circle" /></span>
             </div>)}
         </div>
-    </Dialog>
+    </SidePanel>
 }

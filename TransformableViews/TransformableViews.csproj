@@ -1,15 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <AdminOrgName>hbs</AdminOrgName>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <AssemblyAttribute Include="CMS.AssemblyDiscoverableAttribute"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -18,8 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\XperienceComunity.TransformableViewsShared\XperienceComunity.TransformableViewsShared.csproj" />
+    <ProjectReference Include="..\XperienceComunity.TransformableViews\XperienceComunity.TransformableViews.csproj" />
   </ItemGroup>
-
-
 
 </Project>

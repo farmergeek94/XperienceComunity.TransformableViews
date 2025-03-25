@@ -1,5 +1,4 @@
 ﻿using CMS.Helpers;
-using HBS.TransformableViews;
 using HBS.Xperience.TransformableViews.Models;
 using HBS.Xperience.TransformableViewsShared.Models;
 using HBS.Xperience.TransformableViewsShared.Repositories;

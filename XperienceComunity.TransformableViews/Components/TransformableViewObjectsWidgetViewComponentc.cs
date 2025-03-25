@@ -1,4 +1,5 @@
-﻿using CMS.Membership;
+﻿using CMS.ContentEngine;
+using CMS.Membership;
 using HBS.Xperience.TransformableViews.Components;
 using HBS.Xperience.TransformableViews.Repositories;
 using HBS.Xperience.TransformableViewsShared.Models;
@@ -31,15 +32,18 @@ namespace HBS.Xperience.TransformableViews.Components
     {
         public const string Identifier = "HBS.TransformableViewObjectsWidget";
         private readonly IContentItemRetriever _contentItemRetriever;
+        private readonly ITransformableViewRepository _transformableViewRepository;
 
-        public TransformableViewObjectsWidgetViewComponent(IContentItemRetriever contentItemRetriever)
+        public TransformableViewObjectsWidgetViewComponent(IContentItemRetriever contentItemRetriever, ITransformableViewRepository transformableViewRepository)
         {
             _contentItemRetriever = contentItemRetriever;
+            _transformableViewRepository = transformableViewRepository;
         }
         public async Task<IViewComponentResult> InvokeAsync(TransformableViewObjectsWidgetProperties model)
         {
             if (!string.IsNullOrWhiteSpace(model.ClassName))
             {
+                var view = await _transformableViewRepository.GetTransformableViews(model.View.FirstOrDefault()?.Identifier ?? Guid.Empty);
                 var pModel = new TransformableViewObjectsFormComponentModel
                 {
                     ClassName = model.ClassName,
@@ -47,7 +51,6 @@ namespace HBS.Xperience.TransformableViews.Components
                     WhereCondition = model.WhereCondition,
                     OrderBy = string.Join(',', model.OrderBy),
                     TopN = model.TopN,
-                    View = model.View,
                     ViewClassNames = model.ViewClassNames,
                     ViewCustomContent = model.ViewCustomContent,
                     ViewTitle = model.ViewTitle,
@@ -62,15 +65,16 @@ namespace HBS.Xperience.TransformableViews.Components
                     ViewCustomContent = model.ViewCustomContent,
                     Items = items.ToArray()
                 };
-                return View(model.View, viewModel);
+                return View($"TransformableView/{view?.TransformableDatabaseViewCodeName}", viewModel);
                 //return Content(string.Empty);
             }
             return Content(string.Empty);
         }
     }
 
-    public class TransformableViewObjectsWidgetProperties : TransformableViewModelBase, IWidgetProperties
+    public class TransformableViewObjectsWidgetProperties :IWidgetProperties
     {
+
         [SingleGeneralSelectorComponent(
             dataProviderType: typeof(ClassGeneralSelectorDataProvider),
             Label = "Class",
@@ -93,10 +97,16 @@ namespace HBS.Xperience.TransformableViews.Components
         [NumberInputComponent(Label = "TopN", Order = 5)]
         public int? TopN { get; set; } = null;
 
-        [SingleGeneralSelectorComponent(
-            dataProviderType: typeof(ViewsGeneralSelectorDataProvider),
-            Label = "View",
-            Placeholder = "(Choose a View)", Order = 899)]
-        public override string View { get => base.View; set => base.View = value; }
+        [ContentItemSelectorComponent(
+            TransformableDatabaseClassView.CONTENT_TYPE_NAME,
+            Label = "View", Order = 899, MaximumItems = 1, MinimumItems = 1)]
+        public IEnumerable<ContentItemReference> View { get; set; } = [];
+
+        [TextInputComponent(Label = "View Title", Order = 900)]
+        public string ViewTitle { get; set; } = "";
+        [TextInputComponent(Label = "View Classes", Order = 901)]
+        public string ViewClassNames { get; set; } = "";
+        [TextAreaComponent(Label = "View Custom Content", Order = 902)]
+        public string ViewCustomContent { get; set; } = "";
     }
 }

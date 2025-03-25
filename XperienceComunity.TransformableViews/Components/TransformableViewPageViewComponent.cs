@@ -1,22 +1,7 @@
 ﻿using CMS.ContentEngine;
-using CMS.Helpers;
-using CMS.Websites.Routing;
-using HBS.Xperience.TransformableViews.Components;
-using HBS.Xperience.TransformableViewsShared.Library;
-using HBS.Xperience.TransformableViewsShared.Models;
-using HBS.Xperience.TransformableViewsShared.Repositories;
-using Kentico.Content.Web.Mvc.Routing;
-using Kentico.Content.Web.Mvc;
-using Kentico.PageBuilder.Web.Mvc;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Kentico.Xperience.Admin.Base.Forms;
 using HBS.Xperience.TransformableViews.Repositories;
+using HBS.Xperience.TransformableViewsShared.Repositories;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HBS.Xperience.TransformableViews.Components
 {
@@ -24,24 +9,27 @@ namespace HBS.Xperience.TransformableViews.Components
     public class TransformableViewPageViewComponent : ViewComponent
     {
         private readonly IContentItemRetriever _webPageRetriever;
+        private readonly ITransformableViewRepository _transformableViewRepository;
 
-        public TransformableViewPageViewComponent (IContentItemRetriever webPageRetriever)
+        public TransformableViewPageViewComponent (IContentItemRetriever webPageRetriever, ITransformableViewRepository transformableViewRepository)
         {
             _webPageRetriever = webPageRetriever;
+            _transformableViewRepository = transformableViewRepository;
         }
 
-        public async Task<IViewComponentResult> InvokeAsync(IEnumerable<ObjectRelatedItem> view)
+        public async Task<IViewComponentResult> InvokeAsync(IEnumerable<ContentItemReference> view)
         {
             if (!view.Any())
             {
                 return Content("Please select a view");
             }
+            var viewItem = await _transformableViewRepository.GetTransformableViews(view.FirstOrDefault()?.Identifier ?? Guid.Empty);
             var model = await _webPageRetriever.GetWebPage(User.Identity?.IsAuthenticated ?? false);
             if (model == null)
             {
-                return View(view.FirstOrDefault()?.ObjectCodeName);
+                return View($"TransformableView/{viewItem?.TransformableDatabaseViewCodeName}");
             }
-            return View(view.FirstOrDefault()?.ObjectCodeName, model);
+            return View($"TransformableView/{viewItem?.TransformableDatabaseViewCodeName}", model);
         }
     }
 }
