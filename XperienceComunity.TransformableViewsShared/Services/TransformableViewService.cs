@@ -19,9 +19,8 @@ namespace XperienceComunity.TransformableViewsShared.Services
         IWebHostEnvironment webHostEnvironment,
         IContentItemManagerFactory contentItemManagerFactory,
         IUserInfoProvider userInfoProvider,
-        IViewSettingsService viewSettingsService,
-        IReusableFieldSchemaManager reusableFieldSchemaManager
-    ) : ITransformableViewService
+        IViewSettingsService viewSettingsService
+        ) : ITransformableViewService
     {
 
         private readonly IContentItemManager _contentItemManager = contentItemManagerFactory.Create(userInfoProvider.Get("administrator").UserID);
@@ -45,7 +44,7 @@ namespace XperienceComunity.TransformableViewsShared.Services
 
                 Directory.CreateDirectory(folderPath);
 
-                var filePath = CMS.IO.Path.Combine(folderPath, view.TransformableDatabaseViewCodeName + ".cshtml");
+                var filePath = CMS.IO.Path.Combine(folderPath, $"{view.TransformableDatabaseViewCodeName}_lang_{language}.cshtml");
                 var file = new FileInfo(filePath);
                 using var writer = file.CreateText();
                 writer.Write(view.TransformableDatabaseViewEditor);
@@ -75,18 +74,18 @@ namespace XperienceComunity.TransformableViewsShared.Services
 
             foreach (var filePath in files)
             {
+                if (!filePath.Contains("_lang_" + language))
+                    continue;
                 var file = new FileInfo(filePath);
-                var viewName = file.Name.Replace(file.Extension, "");
+                var viewName = file.Name.Replace(file.Extension, "").Split("_lang_")[0];
                 var delete = false;
                 using (var reader = file.OpenText())
                 {
                     var viewText = await reader.ReadToEndAsync();
                     var view = views.Where(x => x.TransformableDatabaseViewCodeName == viewName).FirstOrDefault();
-                    if (view != null && view is IContentItemFieldsSource contentFields)
-                    {
-                        await UpdateTransformableView(contentFields.SystemFields.ContentItemID, viewText, language);
-                        delete = true;
-                    }
+                    view.TransformableDatabaseViewEditor = viewText;
+                    await UpdateTransformableView(view, language);
+                    delete = true;
                 }
                 if (delete && DeleteViewsOnImport)
                 {
@@ -109,7 +108,7 @@ namespace XperienceComunity.TransformableViewsShared.Services
 
             var folderName = GetViewTypeString(view);
 
-            var filePath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", folderName, view.TransformableDatabaseViewCodeName + ".cshtml");
+            var filePath = CMS.IO.Path.Combine(contentPath, "Views", "TransformableViews", folderName, $"{view.TransformableDatabaseViewCodeName}_lang_{language}.cshtml");
 
             if (File.Exists(filePath))
             {
@@ -120,11 +119,13 @@ namespace XperienceComunity.TransformableViewsShared.Services
                 using (var reader = file.OpenText())
                 {
                     var viewText = await reader.ReadToEndAsync();
-                    if (view != null && view is IContentItemFieldsSource contentFields)
+                    view.TransformableDatabaseViewEditor = viewText;
+                    if(!await UpdateTransformableView(view, language))
                     {
-                        await UpdateTransformableView(contentFields.SystemFields.ContentItemID, viewText, language);
-                        delete = true;
+                        return false;
                     }
+
+                    delete = true;
                 }
                 if (delete && DeleteViewsOnImport)
                 {
@@ -137,7 +138,7 @@ namespace XperienceComunity.TransformableViewsShared.Services
             return false;
         }
 
-        public async Task InsertTransformableView(string displayName, string workspaceName, IHBSTransformableDatabaseView view, string language)
+        public async Task<bool> InsertTransformableView(string displayName, string workspaceName, IHBSTransformableDatabaseView view, string language)
         {
             var languageName = language;
 
@@ -163,19 +164,41 @@ namespace XperienceComunity.TransformableViewsShared.Services
 
             var id = await _contentItemManager.Create(createParams, new ContentItemData(viewData));
 
-            await _contentItemManager.TryPublish(id, languageName);
+           return await _contentItemManager.TryPublish(id, languageName);
         }
 
-        public async Task UpdateTransformableView(int id, string editor, string language)
+        public async Task<bool> UpdateTransformableView(IHBSTransformableDatabaseView view, string language)
         {
             var languageName = language;
-            await _contentItemManager.TryUpdateDraft(id,
-                                        languageName,
-                                        new ContentItemData(new Dictionary<string, object> {
-                                            { nameof(IHBSTransformableDatabaseView.TransformableDatabaseViewEditor),  editor }
-                                        }));
 
-            await _contentItemManager.TryPublish(id, languageName);
+            var viewData = new Dictionary<string, object>
+                    {
+                        { "TransformableDatabaseViewCodeName", view.TransformableDatabaseViewCodeName },
+                        { "TransformableDatabaseViewDisplayName", view.TransformableDatabaseViewDisplayName },
+                        { "TransformableDatabaseViewEditor", view.TransformableDatabaseViewEditor },
+                    };
+            var extraData = GetViewTypeData(view);
+            if (extraData != null)
+            {
+                viewData.Add(extraData.Item1, extraData.Item2);
+            }
+
+
+            if (view is IContentItemFieldsSource contentFields)
+            {
+                var result = await _contentItemManager.TryCreateDraft(contentFields.SystemFields.ContentItemID,
+                                        languageName);
+                if (!result) return result;
+
+                result = await _contentItemManager.TryUpdateDraft(contentFields.SystemFields.ContentItemID,
+                                        languageName,
+                                        new ContentItemData(viewData));
+                if (!result) return result;
+
+                 result = await _contentItemManager.TryPublish(contentFields.SystemFields.ContentItemID, languageName);
+                return result;
+            }
+            return false;
         }
 
         public string GetViewTypeString(IHBSTransformableDatabaseView view)

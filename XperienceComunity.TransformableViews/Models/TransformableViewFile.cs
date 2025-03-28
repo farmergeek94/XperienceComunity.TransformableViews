@@ -4,6 +4,7 @@ using CMS.Helpers;
 using HBS.Xperience.TransformableViewsShared.Repositories;
 using HBS.Xperience.TransformableViewsShared.Services;
 using Kentico.Content.Web.Mvc.Routing;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -22,17 +23,17 @@ namespace Xperience.Community.TransformableViews.Models
     internal class TransformableViewFile : IFileInfo
     {
         private readonly ITransformableViewRepository _repository;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private string _viewPath = "";
-        private readonly string? _language;
         private byte[] _viewContent = Array.Empty<byte>();
         private DateTimeOffset _lastModified = DateTime.MinValue;
         private bool _exists = false;
 
-        public TransformableViewFile(ITransformableViewRepository repository, string viewName, string? language)
+        public TransformableViewFile(ITransformableViewRepository repository, IHttpContextAccessor httpContextAccessor, string viewName)
         {
             _repository = repository;
+            _httpContextAccessor = httpContextAccessor;
             _viewPath = viewName;
-            _language = language;
             GetView(viewName);
         }
         public bool Exists => _exists;
@@ -75,8 +76,9 @@ namespace Xperience.Community.TransformableViews.Models
 
                 try
                 {
+                    var cacheService = _httpContextAccessor.HttpContext.RequestServices.GetRequiredService<ICacheService>();
                     // Get the view
-                    var view = _repository.GetTransformableViews(viewName, _language, true).ConfigureAwait(false).GetAwaiter().GetResult();
+                    var view = _repository.GetTransformableViews(viewName, cacheService.GetCachedLanguage(), true).ConfigureAwait(false).GetAwaiter().GetResult();
                     if (view != null)
                     {
                         // se the properties that will be used later.

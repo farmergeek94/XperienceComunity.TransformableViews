@@ -1,8 +1,10 @@
-﻿using CMS.Helpers;
+﻿using CMS.Core;
+using CMS.Helpers;
 using HBS.Xperience.TransformableViews.Models;
 using HBS.Xperience.TransformableViewsShared.Models;
 using HBS.Xperience.TransformableViewsShared.Repositories;
 using HBS.Xperience.TransformableViewsShared.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
@@ -18,15 +20,8 @@ namespace HBS.Xperience.TransformableViews.Repositories
     /// <summary>
     /// The file provider giving us access to the views. 
     /// </summary>
-    internal class TransformableViewFileProvider : IFileProvider
+    internal class TransformableViewFileProvider(ITransformableViewRepository repository, IHttpContextAccessor httpContextAccessor) : IFileProvider
     {
-        private readonly ITransformableViewRepository _repository;
-        private readonly ICacheService _cacheService;
-
-        public TransformableViewFileProvider(ITransformableViewRepository serviceProvider, ICacheService cacheService) {
-            _repository = serviceProvider;
-            _cacheService = cacheService;
-        }
         /// <summary>
         /// Just return null here as there are no directory contents and they are not needed
         /// </summary>
@@ -44,7 +39,7 @@ namespace HBS.Xperience.TransformableViews.Repositories
         /// <returns></returns>
         public IFileInfo GetFileInfo(string subpath)
         {
-            return new TransformableViewFile(_repository, subpath, _cacheService.GetCachedLanguage());
+            return new TransformableViewFile(repository, httpContextAccessor, subpath);
         }
 
         /// <summary>
@@ -54,7 +49,7 @@ namespace HBS.Xperience.TransformableViews.Repositories
         /// <returns></returns>
         public IChangeToken Watch(string filter)
         {
-            return new TransformableViewChangeToken(_repository, filter, _cacheService.GetCachedLanguage());
+            return new TransformableViewChangeToken(repository, httpContextAccessor, filter);
         }
     }
 }

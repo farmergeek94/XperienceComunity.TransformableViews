@@ -48,8 +48,13 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
         [PageCommand]
         public async Task<ICommandResponse> ExportViews()
         {
-            _ = await _transformableViewService.ExportViews(Page.ContentLanguageIdentifier.LanguageName);
-            return Response().AddSuccessMessage("Views Exported Successfully");
+            if (await _transformableViewService.ExportViews(Page.ContentLanguageIdentifier.LanguageName))
+            {
+                return Response().AddSuccessMessage("Views Exported Successfully");
+            }else
+            {
+                return Response().AddErrorMessage("Views Exported Failed");
+            }
         }
 
         [PageCommand]
@@ -60,7 +65,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.UIPages
                 return Response().AddSuccessMessage("View Imported Successfully");
             }
 
-            return Response().AddErrorMessage("View Not Found on File System");
+            return Response().AddErrorMessage("View Import Failed");
         }
 
         [PageCommand]

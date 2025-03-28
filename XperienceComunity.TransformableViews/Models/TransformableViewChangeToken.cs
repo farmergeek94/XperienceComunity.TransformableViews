@@ -1,5 +1,7 @@
 ﻿using CMS.ContentEngine;
 using HBS.Xperience.TransformableViewsShared.Repositories;
+using HBS.Xperience.TransformableViewsShared.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Path = System.IO.Path;
@@ -12,14 +14,14 @@ namespace HBS.Xperience.TransformableViews.Models
     internal class TransformableViewChangeToken : IChangeToken
     {
         private readonly ITransformableViewRepository _repository;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly string _filter;
-        private readonly string? _language;
 
-        public TransformableViewChangeToken(ITransformableViewRepository repository, string filter, string? language)
+        public TransformableViewChangeToken(ITransformableViewRepository repository, IHttpContextAccessor httpContextAccessor, string filter)
         {
             _repository = repository;
+            _httpContextAccessor = httpContextAccessor;
             _filter = filter;
-            _language = language;
         }
 
         public bool ActiveChangeCallbacks => false;
@@ -37,8 +39,10 @@ namespace HBS.Xperience.TransformableViews.Models
 
                         var viewName = Path.GetFileName(_filter).Replace(".cshtml", "");
 
+                        var cacheService = _httpContextAccessor.HttpContext.RequestServices.GetRequiredService<ICacheService>();
+
                         // get the view (cached)
-                        var view = _repository.GetTransformableViews(viewName, _language).ConfigureAwait(false).GetAwaiter().GetResult();
+                        var view = _repository.GetTransformableViews(viewName, cacheService.GetCachedLanguage()).ConfigureAwait(false).GetAwaiter().GetResult();
                         // run the logic to check and see if the view needs updating
                         if (view != null)
                         {

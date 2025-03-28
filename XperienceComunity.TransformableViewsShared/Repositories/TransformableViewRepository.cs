@@ -30,19 +30,19 @@ namespace HBS.Xperience.TransformableViewsShared.Repositories
             _executor = executor;
         }
 
-        public async Task<IEnumerable<SelectListItem>> GetTransformableViewSelectItems(string contentType, string? language)
+        public async Task<IEnumerable<SelectListItem>> GetTransformableViewSelectItems(string contentType, string language)
         {
             var names = await GetTransformableViews(language);
             return names.Where(x => x is TransformableDatabaseContentView item && item.TransformableDatabaseViewContentType.Any(c=>c == contentType)).Select(x=>new SelectListItem(x.TransformableDatabaseViewDisplayName, x.TransformableDatabaseViewCodeName));
         }
 
-        public async Task<IEnumerable<SelectListItem>> GetTransformableViewObjectSelectItems(string className, string? language)
+        public async Task<IEnumerable<SelectListItem>> GetTransformableViewObjectSelectItems(string className, string language)
         {
             var names = await GetTransformableViews(language);
             return names.Where(x=>x is TransformableDatabaseClassView item && item.TransformableDatabaseViewClasses.Any(c=> c == className)).Select(x => new SelectListItem(x.TransformableDatabaseViewDisplayName, x.TransformableDatabaseViewCodeName));
         }
 
-        public async Task<IEnumerable<IHBSTransformableDatabaseView>> GetTransformableViews(string? language)
+        public async Task<IEnumerable<IHBSTransformableDatabaseView>> GetTransformableViews(string language)
         {
             // using a _semaphore to resolve deadlock issues
             await _semaphore.WaitAsync();
@@ -81,11 +81,11 @@ namespace HBS.Xperience.TransformableViewsShared.Repositories
             }
         }
 
-        public async Task<IHBSTransformableDatabaseView?> GetTransformableViews(int id, string? language) => (await GetTransformableViews(language)).Where(x => (x is IContentItemFieldsSource item) && item.SystemFields.ContentItemID == id).FirstOrDefault();
+        public async Task<IHBSTransformableDatabaseView?> GetTransformableViews(int id, string language) => (await GetTransformableViews(language)).Where(x => (x is IContentItemFieldsSource item) && item.SystemFields.ContentItemID == id).FirstOrDefault();
 
-        public async Task<IHBSTransformableDatabaseView?> GetTransformableViews(Guid id, string? language) => (await GetTransformableViews(language)).Where(x => (x is IContentItemFieldsSource item) && item.SystemFields.ContentItemGUID == id).FirstOrDefault();
+        public async Task<IHBSTransformableDatabaseView?> GetTransformableViews(Guid id, string language) => (await GetTransformableViews(language)).Where(x => (x is IContentItemFieldsSource item) && item.SystemFields.ContentItemGUID == id).FirstOrDefault();
 
-        public async Task<IHBSTransformableDatabaseView?> GetTransformableViews(string viewName, string? language, bool update = false)
+        public async Task<IHBSTransformableDatabaseView?> GetTransformableViews(string viewName, string language, bool update = false)
         {
             var views = await GetTransformableViews(language);
             var view = views.Where(x => x.TransformableDatabaseViewCodeName == viewName).FirstOrDefault();
