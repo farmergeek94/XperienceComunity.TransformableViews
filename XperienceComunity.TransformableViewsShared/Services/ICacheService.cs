@@ -9,5 +9,6 @@ namespace HBS.Xperience.TransformableViewsShared.Services
         CMSCacheDependency GetCacheDependencies(IEnumerable<string> keys);
         CMSCacheDependency GetCacheDependencies(string key);
         string[] GetDependenciesList();
+        string? GetCachedLanguage();
     }
 }

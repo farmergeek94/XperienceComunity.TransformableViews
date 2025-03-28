@@ -2,6 +2,7 @@
 using HBS.Xperience.TransformableViews.Models;
 using HBS.Xperience.TransformableViewsShared.Models;
 using HBS.Xperience.TransformableViewsShared.Repositories;
+using HBS.Xperience.TransformableViewsShared.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
@@ -20,9 +21,11 @@ namespace HBS.Xperience.TransformableViews.Repositories
     internal class TransformableViewFileProvider : IFileProvider
     {
         private readonly ITransformableViewRepository _repository;
+        private readonly ICacheService _cacheService;
 
-        public TransformableViewFileProvider(ITransformableViewRepository serviceProvider) {
+        public TransformableViewFileProvider(ITransformableViewRepository serviceProvider, ICacheService cacheService) {
             _repository = serviceProvider;
+            _cacheService = cacheService;
         }
         /// <summary>
         /// Just return null here as there are no directory contents and they are not needed
@@ -41,7 +44,7 @@ namespace HBS.Xperience.TransformableViews.Repositories
         /// <returns></returns>
         public IFileInfo GetFileInfo(string subpath)
         {
-            return new TransformableViewFile(_repository, subpath);
+            return new TransformableViewFile(_repository, subpath, _cacheService.GetCachedLanguage());
         }
 
         /// <summary>
@@ -51,7 +54,7 @@ namespace HBS.Xperience.TransformableViews.Repositories
         /// <returns></returns>
         public IChangeToken Watch(string filter)
         {
-            return new TransformableViewChangeToken(_repository, filter);
+            return new TransformableViewChangeToken(_repository, filter, _cacheService.GetCachedLanguage());
         }
     }
 }

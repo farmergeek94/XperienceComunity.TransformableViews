@@ -1,10 +1,11 @@
 ﻿@model TemplateViewModel<TransformableViewPageTemplateProperties>
 @inject HBS.Xperience.TransformableViewsShared.Repositories.ITransformableViewRepository transformableViewRepository
+@inject HBS.Xperience.TransformableViewsShared.Services.ICacheService cacheService
 @{
 
     if (Model.Properties.Layout.Any())
     {
-        var view = await transformableViewRepository.GetTransformableViews(Model.Properties.Layout.First().Identifier);
+        var view = await transformableViewRepository.GetTransformableViews(Model.Properties.Layout.First().Identifier, cacheService.GetCachedLanguage());
         Layout = $"TransformableView/{view?.TransformableDatabaseViewCodeName}";
     }
 }

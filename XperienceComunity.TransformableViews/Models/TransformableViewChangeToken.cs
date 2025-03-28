@@ -1,4 +1,5 @@
-﻿using HBS.Xperience.TransformableViewsShared.Repositories;
+﻿using CMS.ContentEngine;
+using HBS.Xperience.TransformableViewsShared.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Path = System.IO.Path;
@@ -12,11 +13,13 @@ namespace HBS.Xperience.TransformableViews.Models
     {
         private readonly ITransformableViewRepository _repository;
         private readonly string _filter;
+        private readonly string? _language;
 
-        public TransformableViewChangeToken(ITransformableViewRepository repository, string filter)
+        public TransformableViewChangeToken(ITransformableViewRepository repository, string filter, string? language)
         {
             _repository = repository;
             _filter = filter;
+            _language = language;
         }
 
         public bool ActiveChangeCallbacks => false;
@@ -35,10 +38,9 @@ namespace HBS.Xperience.TransformableViews.Models
                         var viewName = Path.GetFileName(_filter).Replace(".cshtml", "");
 
                         // get the view (cached)
-                        var view = _repository.GetTransformableViews(viewName);
-                        view.Wait();
+                        var view = _repository.GetTransformableViews(viewName, _language).ConfigureAwait(false).GetAwaiter().GetResult();
                         // run the logic to check and see if the view needs updating
-                        if (view.Result != null)
+                        if (view != null)
                         {
                             var wasRequested = _repository.LastViewedDates.ContainsKey(viewName);
 
@@ -46,7 +48,7 @@ namespace HBS.Xperience.TransformableViews.Models
                             {
                                 return false;
                             }
-                            return DateTimeOffset.MinValue > _repository.LastViewedDates[viewName];
+                            return _repository.LastModified[viewName] > _repository.LastViewedDates[viewName];
                         }
                     }
                     return false;

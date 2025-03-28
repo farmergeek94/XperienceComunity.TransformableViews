@@ -1,6 +1,9 @@
 ﻿using CMS.Core;
+using CMS.DataEngine;
 using CMS.Helpers;
 using HBS.Xperience.TransformableViewsShared.Repositories;
+using HBS.Xperience.TransformableViewsShared.Services;
+using Kentico.Content.Web.Mvc.Routing;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -20,15 +23,16 @@ namespace Xperience.Community.TransformableViews.Models
     {
         private readonly ITransformableViewRepository _repository;
         private string _viewPath = "";
-
+        private readonly string? _language;
         private byte[] _viewContent = Array.Empty<byte>();
         private DateTimeOffset _lastModified = DateTime.MinValue;
         private bool _exists = false;
 
-        public TransformableViewFile(ITransformableViewRepository repository, string viewName)
+        public TransformableViewFile(ITransformableViewRepository repository, string viewName, string? language)
         {
             _repository = repository;
             _viewPath = viewName;
+            _language = language;
             GetView(viewName);
         }
         public bool Exists => _exists;
@@ -72,13 +76,12 @@ namespace Xperience.Community.TransformableViews.Models
                 try
                 {
                     // Get the view
-                    var view = _repository.GetTransformableViews(viewName, true);
-                    view.Wait();
-                    if (view.Result != null)
+                    var view = _repository.GetTransformableViews(viewName, _language, true).ConfigureAwait(false).GetAwaiter().GetResult();
+                    if (view != null)
                     {
                         // se the properties that will be used later.
-                        _viewContent = Encoding.UTF8.GetBytes(usings + view.Result.TransformableDatabaseViewEditor);
-                        _lastModified = DateTimeOffset.MinValue;
+                        _viewContent = Encoding.UTF8.GetBytes(usings + view.TransformableDatabaseViewEditor);
+                        _lastModified = _repository.LastModified[viewName];
                         _exists = true;
                     }
                 }

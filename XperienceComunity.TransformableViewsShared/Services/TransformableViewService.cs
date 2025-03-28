@@ -1,4 +1,5 @@
 ﻿using CMS.ContentEngine;
+using CMS.ContentEngine.Internal;
 using CMS.DataEngine;
 using CMS.Membership;
 using HBS;
@@ -16,10 +17,10 @@ namespace XperienceComunity.TransformableViewsShared.Services
     internal class TransformableViewService(
         ITransformableViewRepository transformableViewRepository,
         IWebHostEnvironment webHostEnvironment,
-        IPreferredLanguageRetriever languageRetriever,
         IContentItemManagerFactory contentItemManagerFactory,
         IUserInfoProvider userInfoProvider,
-        IViewSettingsService viewSettingsService
+        IViewSettingsService viewSettingsService,
+        IReusableFieldSchemaManager reusableFieldSchemaManager
     ) : ITransformableViewService
     {
 
@@ -27,9 +28,9 @@ namespace XperienceComunity.TransformableViewsShared.Services
 
         public bool DeleteViewsOnImport => viewSettingsService.DeleteViewsOnImport;
 
-        public async Task<bool> ExportViews(int id = 0)
+        public async Task<bool> ExportViews(string language, int id = 0)
         {
-            var views = id == 0 ? await transformableViewRepository.GetTransformableViews() : [await transformableViewRepository.GetTransformableViews(id)];
+            var views = id == 0 ? await transformableViewRepository.GetTransformableViews(language) : [await transformableViewRepository.GetTransformableViews(id, language)];
 
             var contentPath = webHostEnvironment.ContentRootPath;
 
@@ -57,12 +58,12 @@ namespace XperienceComunity.TransformableViewsShared.Services
             return true;
         }
 
-        public async Task<bool> ImportViews(int id = 0)
+        public async Task<bool> ImportViews(string language, int id = 0)
         {
-            return id == 0 ? await ImportViewInternal() : await ImportSingleViewInternal(id);
+            return id == 0 ? await ImportViewInternal(language) : await ImportSingleViewInternal(id, language);
         }
 
-        public async Task<bool> ImportViewInternal()
+        public async Task<bool> ImportViewInternal(string language)
         {
             var contentPath = webHostEnvironment.ContentRootPath;
 
@@ -70,7 +71,7 @@ namespace XperienceComunity.TransformableViewsShared.Services
 
             var files = Directory.EnumerateFiles(folderPath, "*.cshtml", SearchOption.AllDirectories);
 
-            var views = await transformableViewRepository.GetTransformableViews();
+            var views = await transformableViewRepository.GetTransformableViews(language);
 
             foreach (var filePath in files)
             {
@@ -83,7 +84,7 @@ namespace XperienceComunity.TransformableViewsShared.Services
                     var view = views.Where(x => x.TransformableDatabaseViewCodeName == viewName).FirstOrDefault();
                     if (view != null && view is IContentItemFieldsSource contentFields)
                     {
-                        await UpdateTransformableView(contentFields.SystemFields.ContentItemID, viewText);
+                        await UpdateTransformableView(contentFields.SystemFields.ContentItemID, viewText, language);
                         delete = true;
                     }
                 }
@@ -95,9 +96,9 @@ namespace XperienceComunity.TransformableViewsShared.Services
             return true;
         }
 
-        public async Task<bool> ImportSingleViewInternal(int id)
+        public async Task<bool> ImportSingleViewInternal(int id, string language)
         {
-            var view = await transformableViewRepository.GetTransformableViews(id);
+            var view = await transformableViewRepository.GetTransformableViews(id, language);
 
             if (view == null)
             {
@@ -121,7 +122,7 @@ namespace XperienceComunity.TransformableViewsShared.Services
                     var viewText = await reader.ReadToEndAsync();
                     if (view != null && view is IContentItemFieldsSource contentFields)
                     {
-                        await UpdateTransformableView(contentFields.SystemFields.ContentItemID, viewText);
+                        await UpdateTransformableView(contentFields.SystemFields.ContentItemID, viewText, language);
                         delete = true;
                     }
                 }
@@ -136,9 +137,9 @@ namespace XperienceComunity.TransformableViewsShared.Services
             return false;
         }
 
-        public async Task InsertTransformableView(string displayName, string workspaceName, IHBSTransformableDatabaseView view)
+        public async Task InsertTransformableView(string displayName, string workspaceName, IHBSTransformableDatabaseView view, string language)
         {
-            var languageName = languageRetriever.Get();
+            var languageName = language;
 
             var viewData = new Dictionary<string, object>
                     {
@@ -165,9 +166,9 @@ namespace XperienceComunity.TransformableViewsShared.Services
             await _contentItemManager.TryPublish(id, languageName);
         }
 
-        public async Task UpdateTransformableView(int id, string editor)
+        public async Task UpdateTransformableView(int id, string editor, string language)
         {
-            var languageName = languageRetriever.Get();
+            var languageName = language;
             await _contentItemManager.TryUpdateDraft(id,
                                         languageName,
                                         new ContentItemData(new Dictionary<string, object> {
@@ -177,7 +178,7 @@ namespace XperienceComunity.TransformableViewsShared.Services
             await _contentItemManager.TryPublish(id, languageName);
         }
 
-        private string GetViewTypeString(IHBSTransformableDatabaseView view)
+        public string GetViewTypeString(IHBSTransformableDatabaseView view)
         {
             var folderName = "Shared";
             if (view is TransformableDatabaseLayoutView)

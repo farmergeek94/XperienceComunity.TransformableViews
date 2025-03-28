@@ -2,6 +2,7 @@
 using HBS.Xperience.TransformableViewsShared.Library;
 using HBS.Xperience.TransformableViewsShared.Models;
 using HBS.Xperience.TransformableViewsShared.Repositories;
+using HBS.Xperience.TransformableViewsShared.Services;
 using Kentico.Xperience.Admin.Base;
 using Kentico.Xperience.Admin.Base.FormAnnotations;
 using Kentico.Xperience.Admin.Base.Forms;
@@ -21,12 +22,14 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.FormComponents.Tranformabl
     public class TransformableViewObjectsFormComponent : FormComponent<TransformableViewObjectsFormComponentProperties, TransformableViewObjectsFormComponentClientProperties, TransformableViewObjectsFormComponentModel>
     {
         private readonly ITransformableViewRepository _transformableViewRepository;
+        private readonly ICacheService _cacheService;
 
         public override string ClientComponentName => "@hbs/xperience-transformable-views/TransformableViewObjects";
 
-        public TransformableViewObjectsFormComponent(ITransformableViewRepository transformableViewRepository)
+        public TransformableViewObjectsFormComponent(ITransformableViewRepository transformableViewRepository, ICacheService cacheService)
         {
             _transformableViewRepository = transformableViewRepository;
+            _cacheService = cacheService;
         }
 
         /// <summary>
@@ -37,7 +40,7 @@ namespace HBS.Xperience.TransformableViewsAdmin.Admin.FormComponents.Tranformabl
         [FormComponentCommand]
         public async Task<ICommandResponse> GetViews(string className)
         {
-            IEnumerable<SelectListItem> views = await _transformableViewRepository.GetTransformableViewObjectSelectItems(className);
+            IEnumerable<SelectListItem> views = await _transformableViewRepository.GetTransformableViewObjectSelectItems(className, _cacheService.GetCachedLanguage());
             return ResponseFrom(views);
         }
 

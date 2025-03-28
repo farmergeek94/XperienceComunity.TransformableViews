@@ -4,6 +4,8 @@ using HBS.Xperience.TransformableViews.Components;
 using HBS.Xperience.TransformableViews.Repositories;
 using HBS.Xperience.TransformableViewsShared.Models;
 using HBS.Xperience.TransformableViewsShared.Repositories;
+using HBS.Xperience.TransformableViewsShared.Services;
+using Kentico.Content.Web.Mvc.Routing;
 using Kentico.PageBuilder.Web.Mvc;
 using Kentico.Xperience.Admin.Base.FormAnnotations;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +21,7 @@ using XperienceComunity.TransformableViews.Repositories.GeneralSelectors;
 [assembly: RegisterWidget(
     identifier: TransformableViewObjectsWidgetViewComponent.Identifier,
     customViewName: "~/Components/_TVObjects.cshtml",
-    name: "Transformable View Objects",
+    name: "Transformable Classes",
     propertiesType: typeof(TransformableViewObjectsWidgetProperties),
     IconClass = "icon-layout")]
 
@@ -33,17 +35,21 @@ namespace HBS.Xperience.TransformableViews.Components
         public const string Identifier = "HBS.TransformableViewObjectsWidget";
         private readonly IContentItemRetriever _contentItemRetriever;
         private readonly ITransformableViewRepository _transformableViewRepository;
+        private readonly ICacheService _cacheService;
 
-        public TransformableViewObjectsWidgetViewComponent(IContentItemRetriever contentItemRetriever, ITransformableViewRepository transformableViewRepository)
+        public TransformableViewObjectsWidgetViewComponent(IContentItemRetriever contentItemRetriever
+            , ITransformableViewRepository transformableViewRepository
+            , ICacheService cacheService)
         {
             _contentItemRetriever = contentItemRetriever;
             _transformableViewRepository = transformableViewRepository;
+            _cacheService = cacheService;
         }
         public async Task<IViewComponentResult> InvokeAsync(TransformableViewObjectsWidgetProperties model)
         {
             if (!string.IsNullOrWhiteSpace(model.ClassName))
             {
-                var view = await _transformableViewRepository.GetTransformableViews(model.View.FirstOrDefault()?.Identifier ?? Guid.Empty);
+                var view = await _transformableViewRepository.GetTransformableViews(model.View.FirstOrDefault()?.Identifier ?? Guid.Empty, _cacheService.GetCachedLanguage());
                 var pModel = new TransformableViewObjectsFormComponentModel
                 {
                     ClassName = model.ClassName,

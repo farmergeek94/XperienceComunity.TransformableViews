@@ -1,6 +1,8 @@
 ﻿using CMS.ContentEngine;
 using HBS.Xperience.TransformableViews.Repositories;
 using HBS.Xperience.TransformableViewsShared.Repositories;
+using HBS.Xperience.TransformableViewsShared.Services;
+using Kentico.Content.Web.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HBS.Xperience.TransformableViews.Components
@@ -10,11 +12,13 @@ namespace HBS.Xperience.TransformableViews.Components
     {
         private readonly IContentItemRetriever _webPageRetriever;
         private readonly ITransformableViewRepository _transformableViewRepository;
+        private readonly ICacheService _cacheService;
 
-        public TransformableViewPageViewComponent (IContentItemRetriever webPageRetriever, ITransformableViewRepository transformableViewRepository)
+        public TransformableViewPageViewComponent (IContentItemRetriever webPageRetriever, ITransformableViewRepository transformableViewRepository, ICacheService cacheService)
         {
             _webPageRetriever = webPageRetriever;
             _transformableViewRepository = transformableViewRepository;
+            _cacheService = cacheService;
         }
 
         public async Task<IViewComponentResult> InvokeAsync(IEnumerable<ContentItemReference> view)
@@ -23,7 +27,7 @@ namespace HBS.Xperience.TransformableViews.Components
             {
                 return Content("Please select a view");
             }
-            var viewItem = await _transformableViewRepository.GetTransformableViews(view.FirstOrDefault()?.Identifier ?? Guid.Empty);
+            var viewItem = await _transformableViewRepository.GetTransformableViews(view.FirstOrDefault()?.Identifier ?? Guid.Empty, _cacheService.GetCachedLanguage());
             var model = await _webPageRetriever.GetWebPage(User.Identity?.IsAuthenticated ?? false);
             if (model == null)
             {

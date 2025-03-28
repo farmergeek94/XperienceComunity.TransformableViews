@@ -71,7 +71,7 @@ namespace XperienceComunity.TransformableViewsTool
                 Visible = false
             };
             formInfo.AddFormItem(formItem);
-                
+
 
             return formInfo;
         }
@@ -101,12 +101,19 @@ namespace XperienceComunity.TransformableViewsTool
             var tempPath = CMS.IO.Path.Combine(System.IO.Path.GetTempPath(), "TransformableViews_Export");
             var viewsPath = CMS.IO.Path.Combine(tempPath, "Views");
 
-            var views = await transformableViewRepository.GetTransformableViews();
+            // Get all views irrespective of language
+            var views = await transformableViewRepository.GetTransformableViews(null);
+            var languages = await ContentLanguageInfoProvider.ProviderObject.Get().GetEnumerableTypedResultAsync();
 
             var viewJson = new Dictionary<string, string>();
             foreach (var view in views)
             {
-                viewJson.Add(view.TransformableDatabaseViewCodeName, JsonSerializer.Serialize(view));
+                var type = transformableViewService.GetViewTypeString(view);
+                var languageId = view is IContentItemFieldsSource contentFields ? contentFields.SystemFields.ContentItemCommonDataContentLanguageID : 0;
+                var language = languages.FirstOrDefault(x => x.ContentLanguageID == languageId);
+                if(language == null) continue;
+                var filePath = CMS.IO.Path.Combine(viewsPath, type, $"{view.TransformableDatabaseViewCodeName}_lang_{language.ContentLanguageName}.json");
+                viewJson.Add(filePath, JsonSerializer.Serialize(view));
             }
 
             if (Directory.Exists(tempPath))
@@ -118,7 +125,7 @@ namespace XperienceComunity.TransformableViewsTool
 
             foreach (var item in viewJson)
             {
-                await File.WriteAllTextAsync(CMS.IO.Path.Combine(viewsPath, $"{item.Key}.json"), item.Value);
+                await File.WriteAllTextAsync(item.Key, item.Value);
             }
 
             if (model.PageTemplates)
@@ -172,7 +179,7 @@ namespace XperienceComunity.TransformableViewsTool
 
             System.IO.Compression.ZipFile.ExtractToDirectory(model.Import, tempPath);
 
-            List<IHBSTransformableDatabaseView> transformableViews = [];
+            List<Tuple<IHBSTransformableDatabaseView, string>> transformableViews = [];
 
             transformableViews.AddRange(await ReadJsonFiles(tempPath, "Layouts"));
 
@@ -231,11 +238,11 @@ namespace XperienceComunity.TransformableViewsTool
             Environment.Exit(0);
         }
 
-        private async Task<IEnumerable<IHBSTransformableDatabaseView>> ReadJsonFiles(string tempPath, string type)
+        private async Task<IEnumerable<Tuple<IHBSTransformableDatabaseView, string>>> ReadJsonFiles(string tempPath, string type)
         {
             var files = Directory.EnumerateFiles(CMS.IO.Path.Combine(tempPath, "Views", type));
 
-            List<IHBSTransformableDatabaseView> transformableViews = [];
+            List<Tuple<IHBSTransformableDatabaseView, string>> transformableViews = [];
             foreach (var file in files)
             {
                 var fileText = await File.ReadAllTextAsync(file);
@@ -251,27 +258,29 @@ namespace XperienceComunity.TransformableViewsTool
                     };
                     if (item != null)
                     {
-                        transformableViews.Add(item);
+                        var language = file.Split("_lang_")[1].Split(".json")[0];
+                        transformableViews.Add(Tuple.Create(item, language));
                     }
                 }
             }
             return transformableViews;
         }
 
-        private async Task UpdateInsertViews(IEnumerable<IHBSTransformableDatabaseView> views)
+        private async Task UpdateInsertViews(IEnumerable<Tuple<IHBSTransformableDatabaseView, string>> views)
         {
-            foreach(var viewItem in views)
-            {
-                var view = await transformableViewRepository.GetTransformableViews(viewItem.TransformableDatabaseViewCodeName);
+            foreach(var item in views)
+            { 
+                var viewItem = item.Item1;
+                 var view = await transformableViewRepository.GetTransformableViews(viewItem.TransformableDatabaseViewCodeName);
 
                 if (view == null)
                 {
-                    await transformableViewService.InsertTransformableView(viewItem.TransformableDatabaseViewDisplayName, viewSettingsService.WorkSpaceName, viewItem);
+                    await transformableViewService.InsertTransformableView(viewItem.TransformableDatabaseViewDisplayName, viewSettingsService.WorkSpaceName, viewItem, item.Item2);
                 }
                 else
                 {
                     if(view is IContentItemFieldsSource contentFields)
-                        await transformableViewService.UpdateTransformableView(contentFields.SystemFields.ContentItemID, viewItem.TransformableDatabaseViewEditor);
+                        await transformableViewService.UpdateTransformableView(contentFields.SystemFields.ContentItemID, viewItem.TransformableDatabaseViewEditor, item.Item2);
                 }
             }
         }

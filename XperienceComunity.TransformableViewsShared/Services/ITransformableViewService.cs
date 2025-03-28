@@ -7,11 +7,10 @@ namespace XperienceComunity.TransformableViewsShared.Services
     {
         bool DeleteViewsOnImport { get; }
 
-        Task<bool> ExportViews(int id = 0);
-        Task<bool> ImportSingleViewInternal(int id);
-        Task<bool> ImportViewInternal();
-        Task<bool> ImportViews(int id = 0);
-        Task InsertTransformableView(string displayName, string workspaceName, IHBSTransformableDatabaseView view);
-        Task UpdateTransformableView(int id, string editor);
+        Task<bool> ExportViews(string language, int id = 0);
+        string GetViewTypeString(IHBSTransformableDatabaseView view);
+        Task<bool> ImportViews(string language, int id = 0);
+        Task InsertTransformableView(string displayName, string workspaceName, IHBSTransformableDatabaseView view, string? language);
+        Task UpdateTransformableView(int id, string editor, string? language);
     }
 }

@@ -9,6 +9,8 @@ using HBS.Xperience.TransformableViews.Repositories;
 using HBS.Xperience.TransformableViewsShared.Library;
 using HBS.Xperience.TransformableViewsShared.Models;
 using HBS.Xperience.TransformableViewsShared.Repositories;
+using HBS.Xperience.TransformableViewsShared.Services;
+using Kentico.Content.Web.Mvc.Routing;
 using Kentico.Forms.Web.Mvc;
 using Kentico.Forms.Web.Mvc.Internal;
 using Kentico.Forms.Web.Mvc.Widgets.Internal;
@@ -35,7 +37,7 @@ using XperienceComunity.TransformableViews.Models;
 [assembly: RegisterWidget(
     identifier: TransformableViewContentWidgetViewComponent.Identifier,
     customViewName: "~/Components/_TVContentWidget.cshtml",
-    name: "Transformable View Widget",
+    name: "Transformable Content",
     propertiesType: typeof(TransformableViewContentWidgetProperties),
     IconClass = "icon-braces-octothorpe")]
 
@@ -51,12 +53,14 @@ namespace HBS.Xperience.TransformableViews.Components
         private readonly ITransformableViewRepository _transformableViewRepository;
         private readonly IContentQueryExecutor _contentQueryExecutor;
         private readonly IContentItemRetriever _webPageRetriever;
+        private readonly ICacheService _cacheService;
 
-        public TransformableViewContentWidgetViewComponent(ITransformableViewRepository transformableViewRepository, IContentQueryExecutor contentQueryExecutor, IContentItemRetriever webPageRetriever)
+        public TransformableViewContentWidgetViewComponent(ITransformableViewRepository transformableViewRepository, IContentQueryExecutor contentQueryExecutor, IContentItemRetriever webPageRetriever, ICacheService cacheService)
         {
             _transformableViewRepository = transformableViewRepository;
             _contentQueryExecutor = contentQueryExecutor;
             _webPageRetriever = webPageRetriever;
+            _cacheService = cacheService;
         }
         public async Task<IViewComponentResult> InvokeAsync(TransformableViewContentWidgetProperties properties)
         {
@@ -70,7 +74,7 @@ namespace HBS.Xperience.TransformableViews.Components
                     Items = await _webPageRetriever.GetContentItems(properties.ContentType.First().ObjectGuid, properties.SelectedContent.Select(x => x.Identifier))
                 };
 
-                var view = await _transformableViewRepository.GetTransformableViews(properties.View.FirstOrDefault()?.Identifier ?? Guid.Empty);
+                var view = await _transformableViewRepository.GetTransformableViews(properties.View.FirstOrDefault()?.Identifier ?? Guid.Empty, _cacheService.GetCachedLanguage());
                 if(view != null)
                     // Return the database view with the model. 
                     return View($"TransformableView/{view.TransformableDatabaseViewCodeName}", viewModel);
@@ -99,7 +103,7 @@ namespace HBS.Xperience.TransformableViews.Components
         [TextAreaComponent(Label = "View Custom Content")]
         public string ViewCustomContent { get; set; } = string.Empty;
 
-        [ContentItemSelectorComponent(TransformableDatabaseClassView.CONTENT_TYPE_NAME, Label = "View", MaximumItems = 1, MinimumItems = 1)]
+        [ContentItemSelectorComponent(TransformableDatabaseContentView.CONTENT_TYPE_NAME, Label = "View", MaximumItems = 1, MinimumItems = 1)]
         public IEnumerable<ContentItemReference> View { get; set; } = [];
     }
 
